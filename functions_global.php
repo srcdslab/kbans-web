@@ -619,11 +619,14 @@
             echo "</li>";
         }
 
-        echo "<li>";
-        echo "<span><i class='fa-solid fa-gamepad'></i> Map</span>";
-        echo "<span><a href=". $GLOBALS['SERVER_FASTDL'] ."'/maps/$map.bsp.bz2'>$map</span>";
-        echo "</li>";
-        
+        $fastdl_url = $GLOBALS['SERVER_FASTDL'];
+        $bz2_map_name = $map .'.bsp.bz2';
+
+        echo '<li>';
+        echo '<span><i class="fa-solid fa-gamepad"></i> Map</span>';
+        echo '<span><a href="'. $fastdl_url .'/maps/'. $bz2_map_name .'">'. $map .'</span>';
+        echo '</li>';
+
         echo "</ul>";
     }
 
