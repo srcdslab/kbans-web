@@ -12,7 +12,7 @@
         $currentPage = 1;
     }
 
-    $resultsPerPage = 3;
+    $resultsPerPage = 20;
     $resultsStart = (($currentPage - 1) * $resultsPerPage);
 
     $sql = "SELECT * FROM `KbRestrict_CurrentBans`";
