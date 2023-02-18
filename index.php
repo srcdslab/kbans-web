@@ -211,6 +211,7 @@
                                         $dateA->setTimestamp($time_stamp_start);
                                         $dateB = $dateA->format("Y-m-d h:i:s");
 
+                                        echo "<tr class='$class' id-data='$id' id='diva-tr-$id'>";
                                         echo "<td style='background-color: transparent; align-items: center;'><img src='./images/games/csource.png' border='0' align='absmiddle' alt='css'></td>";
                                         echo "<td>$dateB</td>";
                                         echo "<td>$clientName</td>";
