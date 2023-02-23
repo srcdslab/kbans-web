@@ -1,6 +1,5 @@
 <?php
     include_once('steam.php');
-
     class Admin {
         public $adminID = -1;
         public $adminGroupID = -1;
@@ -117,7 +116,7 @@
             $sql .= "VALUES ('$playerName', '$playerSteamID', '$adminName', '$adminSteamID', '$message', $time_stamp_start)";
             $GLOBALS['DB']->query($sql);
 
-            echo "<script>showEbanWindowInfo(2, \"$playerName\", \"$playerSteamID\", \"$reason\", \"$length minutes\");</script>";
+            echo "<script>showKbanWindowInfo(2, \"$playerName\", \"$playerSteamID\", \"$reason\", \"$length minutes\");</script>";
 
             return true;
         }
@@ -162,7 +161,7 @@
             $sql .= "VALUES ('$playerName', '$playerSteamID', '$adminName', '$adminSteamID', '$message', $time_stamp)";
             $GLOBALS['DB']->query($sql);
 
-            echo "<script>showEbanWindowInfo(3, \"$playerName\", \"$playerSteamID\", \"$reason\", \"$length minutes\");</script>";
+            echo "<script>showKbanWindowInfo(3, \"$playerName\", \"$playerSteamID\", \"$reason\", \"$length minutes\", $id);</script>";
             //echo "<script>window.location.replace('index.php?all');</script>";
         }
 
@@ -308,7 +307,7 @@
 
             $GLOBALS['DB']->query($sql);
 
-            echo "<script>showEbanWindowInfo(2, \"$playerName\", \"$playerSteamID\", \"$reason\", \"$lengthInMinutes minutes\");</script>";
+            echo "<script>showKbanWindowInfo(2, \"$playerName\", \"$playerSteamID\", \"$reason\", \"$lengthInMinutes minutes\");</script>";
             //echo "<script>window.location.replace('index.php?all');</script>";
         }
 
@@ -376,7 +375,7 @@
 
             $GLOBALS['DB']->query($sql);
 
-            echo "<script>showEbanWindowInfo(1, \"$playerName\", \"$playerSteamID\", \"$reason\", \"$lengthInMinutes minutes\");</script>";
+            echo "<script>showKbanWindowInfo(1, \"$playerName\", \"$playerSteamID\", \"$reason\", \"$lengthInMinutes minutes\");</script>";
             //echo "<script>window.location.replace('index.php?all');</script>";
         }
 
@@ -619,15 +618,13 @@
             echo "</li>";
         }
 
-        $fastdl_url = $GLOBALS['SERVER_FASTDL'];
-        $bz2_map_name = $map .'.bsp.bz2';
-
-        echo '<li>';
-        echo '<span><i class="fa-solid fa-gamepad"></i> Map</span>';
-        echo '<span><a href="'. $fastdl_url .'/maps/'. $bz2_map_name .'">'. $map .'</span>';
-        echo '</li>';
-
+        echo "<li>";
+        echo "<span><i class='fa-solid fa-gamepad'></i> Map</span>";
+        echo "<span><a href='https://fastdl.nide.gg/css_ze/maps/$map.bsp.bz2'>$map</span>";
+        echo "</li>";
+        
         echo "</ul>";
+        
     }
 
     function GetKbanLengths() {

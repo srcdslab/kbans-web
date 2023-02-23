@@ -170,7 +170,7 @@ function setModalSearch(type) {
     $('#hideInput').attr('name', type);
 }
 
-function showKbanWindowInfo(type, playerName = "", playerSteamID = "", reason = "", length = "") {
+function showKbanWindowInfo(type, playerName = "", playerSteamID = "", reason = "", length = "", id = 0) {
     /* type values: 0 = Add Kban, 1 = Edit Kban, 2 = Unban Kban, 3 = Delete Kban */
     const titles = [
         "Kban Added",
@@ -228,8 +228,11 @@ function showKbanWindowInfo(type, playerName = "", playerSteamID = "", reason = 
     }
 
     if(type == 3) {
-        let diva = '#diva-'+id;
-        $(diva+'-tr').hide();
+        let diva1 = '#diva-'+id;
+        $(diva1+'-tr').hide();
+
+        let diva2 = '#diva-tr-'+id;
+        $(diva2).hide();
 
         let totalResults = $('#totalText').attr('results');
         let totalHtml = $('#totalText').html();
