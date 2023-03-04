@@ -1,6 +1,5 @@
 <?php
     include_once('steam.php');
-
     class Admin {
         public $adminID = -1;
         public $adminGroupID = -1;
@@ -54,6 +53,10 @@
         }
 
         public function GetAdminNameFromSteamID($steamID) {
+            if(!str_contains($steamID, "STEAM")) {
+                return "Console";
+            }
+            
             $sql = "SELECT * FROM `sb_admins` WHERE `authid`='$steamID'";
             $query = $GLOBALS['SBPP']->query($sql);
             $results = $query->fetch_all(MYSQLI_ASSOC);
@@ -117,7 +120,7 @@
             $sql .= "VALUES ('$playerName', '$playerSteamID', '$adminName', '$adminSteamID', '$message', $time_stamp_start)";
             $GLOBALS['DB']->query($sql);
 
-            echo "<script>showEbanWindowInfo(2, \"$playerName\", \"$playerSteamID\", \"$reason\", \"$length minutes\");</script>";
+            echo "<script>showKbanWindowInfo(2, \"$playerName\", \"$playerSteamID\", \"$reason\", \"$length minutes\");</script>";
 
             return true;
         }
@@ -162,7 +165,7 @@
             $sql .= "VALUES ('$playerName', '$playerSteamID', '$adminName', '$adminSteamID', '$message', $time_stamp)";
             $GLOBALS['DB']->query($sql);
 
-            echo "<script>showEbanWindowInfo(3, \"$playerName\", \"$playerSteamID\", \"$reason\", \"$length minutes\");</script>";
+            echo "<script>showKbanWindowInfo(3, \"$playerName\", \"$playerSteamID\", \"$reason\", \"$length minutes\", $id);</script>";
             //echo "<script>window.location.replace('index.php?all');</script>";
         }
 
@@ -308,7 +311,7 @@
 
             $GLOBALS['DB']->query($sql);
 
-            echo "<script>showEbanWindowInfo(2, \"$playerName\", \"$playerSteamID\", \"$reason\", \"$lengthInMinutes minutes\");</script>";
+            echo "<script>showKbanWindowInfo(2, \"$playerName\", \"$playerSteamID\", \"$reason\", \"$lengthInMinutes minutes\");</script>";
             //echo "<script>window.location.replace('index.php?all');</script>";
         }
 
@@ -376,7 +379,7 @@
 
             $GLOBALS['DB']->query($sql);
 
-            echo "<script>showEbanWindowInfo(1, \"$playerName\", \"$playerSteamID\", \"$reason\", \"$lengthInMinutes minutes\");</script>";
+            echo "<script>showKbanWindowInfo(1, \"$playerName\", \"$playerSteamID\", \"$reason\", \"$lengthInMinutes minutes\");</script>";
             //echo "<script>window.location.replace('index.php?all');</script>";
         }
 
@@ -626,8 +629,9 @@
         echo '<span><i class="fa-solid fa-gamepad"></i> Map</span>';
         echo '<span><a href="'. $fastdl_url .'/maps/'. $bz2_map_name .'">'. $map .'</span>';
         echo '</li>';
-
+        
         echo "</ul>";
+        
     }
 
     function GetKbanLengths() {
