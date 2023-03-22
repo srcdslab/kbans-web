@@ -101,7 +101,7 @@
             </div>
             <div class="container-box1">
                 <div class="order1">
-                <p id="totalText" results=<?php echo "$resultsCount";?>>&nbsp Total Ebans: <?php echo $resultsCount; ?></p>
+                <p id="totalText" results=<?php echo "$resultsCount";?>>&nbsp Total Kbans: <?php echo $resultsCount; ?></p>
                 </div>
                 <div class="order2">
                     <?php
