@@ -37,8 +37,8 @@ function UnBanByID(id, reason) {
     var xmlResponse1 = new XMLHttpRequest();
     xmlResponse1.onreadystatechange = function() {
         if(this.readyState == 4 && this.status == 200) {
-            $('#diva-'+id).html(xmlResponse2.responseText);
-            
+            $('#diva-'+id).html(this.responseText);
+
             let trDiva = document.getElementById('diva-tr-'+id);
             trDiva.className = "row-expired";
             let oldHtml = $('#length-'+id).html();
@@ -50,6 +50,12 @@ function UnBanByID(id, reason) {
     xmlResponse1.open("GET", "functions_url.php?oldid="+id+'&reason='+reason, true);
     xmlResponse1.send();
 
+    var xmlResponse2 = new XMLHttpRequest();
+    xmlResponse2.onreadystatechange = function() {
+        if(this.readyState == 4 && this.status == 200) {
+            // Process xmlResponse2.responseText here
+        }
+    };
 
     xmlResponse2.open("GET", "functions_url.php?id="+id, true);
     xmlResponse2.send();
@@ -296,7 +302,7 @@ function showKbanWindowInfo(type, playerName = "", playerSteamID = "", reason = 
 
     $('.kban-action-window').css('display', 'block');
 
-    let sec = 5;
+    let sec = 3;
     setTimeout(CloseWindow, (sec * 1000)); 
 }
 
