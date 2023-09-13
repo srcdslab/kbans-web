@@ -544,10 +544,10 @@
 
         $date = new DateTime("now", new DateTimeZone(DATE_TIME_ZONE));
         $date->setTimestamp($time_stamp_start);
-        $startDate  = ($length === "Session") ? "Temporary" : $date->format(DATE_TIME_FORMAT);
+        $startDate  = $date->format(DATE_TIME_FORMAT);
 
         $date->setTimestamp($time_stamp_end);
-        $endDate    = $date->format(DATE_TIME_FORMAT);
+        $endDate    = ($length === "Session") ? "Temporary" : $date->format(DATE_TIME_FORMAT);
 
         echo "<ul class='kban_details'>";
 
