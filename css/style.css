@@ -1059,16 +1059,16 @@ input[disabled] {
  * Social Icons
  */
 #steam_group {
-	border-radius: 1cm;
-	padding: 5px 5px;
-	background-color: #1b2838 !important;
-	color: white;
-	font-size: 20px;
-	border: none;
-	border-radius: 1cm;
-	cursor: pointer;
-	text-align: center;
-	transition: all 0.3s ease 0s;
+    padding: 5px;
+    border-radius: 1cm;
+    background-color: #1b2838 !important;
+    color: white;
+    font-size: 20px;
+    cursor: pointer;
+    transition: all 0.3s ease 0s;
+}
+#steam_group i {
+    margin-left: 5px;
 }
 
 #discord {

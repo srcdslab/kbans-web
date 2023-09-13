@@ -440,8 +440,8 @@
     }
 
     function formatMethod(int $method) {
-    $methods = ["", "client_steamid", "client_name", "client_ip", "admin_name", "admin_steamid"];
-    return $methods[$method];
+        $methods = ["client_steamid", "client_name", "client_ip", "admin_name", "admin_steamid", "map"];
+        return $methods[$method-1];
 	}
 
     function GetRowInfo($id, $result2 = null) {
@@ -542,12 +542,12 @@
 
         echo "</div>";
 
-        $date = new DateTime("now", new DateTimeZone("GMT+1"));
+        $date = new DateTime("now", new DateTimeZone(DATE_TIME_ZONE));
         $date->setTimestamp($time_stamp_start);
-        $startDate  = $date->format("Y-m-d h:i:s");
+        $startDate  = ($length === "Sesssion") ? "Temporary" : $date->format(DATE_TIME_FORMAT);
 
         $date->setTimestamp($time_stamp_end);
-        $endDate    = $date->format("Y-m-d h:i:s");
+        $endDate    = $date->format(DATE_TIME_FORMAT);
 
         echo "<ul class='kban_details'>";
 
@@ -603,7 +603,7 @@
         if($isRemoved) {
             echo "<script>ChangeDivaHeight($id);</script>";
             $date->setTimestamp($time_stamp_removed);
-            $removedDate = $date->format("Y-m-d h:i:s");
+            $removedDate = $date->format(DATE_TIME_FORMAT);
 
             echo "<li>";
             echo "<span><i class='fas fa-play'></i> Unbanned on</span>";

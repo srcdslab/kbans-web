@@ -155,7 +155,7 @@
                                 <?php
                                     $kban = new Kban();
                                     $admin = new Admin();
-                                    $dateA = new DateTime("now", new DateTimeZone("GMT+1"));
+                                    $dateA = new DateTime("now", new DateTimeZone(DATE_TIME_ZONE));
                                     foreach($results1 as $result1) {
                                         $id                 = $result1['id'];
                                         $clientName         = $result1['client_name'];
@@ -209,7 +209,7 @@
                                         }
 
                                         $dateA->setTimestamp($time_stamp_start);
-                                        $dateB = $dateA->format("Y-m-d h:i:s");
+                                        $dateB = $dateA->format(DATE_TIME_FORMAT);
 
                                         echo "<tr class='$class' id-data='$id' id='diva-tr-$id'>";
                                         echo "<td style='background-color: transparent; align-items: center;'><img src='./images/games/csource.png' border='0' align='absmiddle' alt='css'></td>";

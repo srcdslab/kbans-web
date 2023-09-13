@@ -144,7 +144,7 @@
                         <tbody>
                             <?php
                                 $admin = new Admin();
-                                $date = new DateTime("now", new DateTimeZone("GMT+1"));
+                                $date = new DateTime("now", new DateTimeZone(DATE_TIME_ZONE));
                                 foreach($results1 as $result1) {
                                     $clientName         = $result1['client_name'];
                                     $clientSteamID      = $result1['client_steamid'];
@@ -156,7 +156,7 @@
 
 
                                     $date->setTimestamp($time_stamp);
-                                    $dateFormated = $date->format("Y-m-d h:i:s");
+                                    $dateFormated = $date->format(DATE_TIME_FORMAT);
 
                                     echo "<tr class='row-expired'>";
                                     echo "<td>$dateFormated</td>";
@@ -174,3 +174,13 @@
 </div>
 <?php include('footer.php'); ?>
 </div>
+<script>
+    $(function() {
+        $('.select_').on('change', function() {
+            let value = $(this).val();
+            let href = $(this).attr('data-href');
+            href += '&page='+value;
+            window.location.replace(href);
+        });
+    });
+</script>
