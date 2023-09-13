@@ -544,7 +544,7 @@
 
         $date = new DateTime("now", new DateTimeZone(DATE_TIME_ZONE));
         $date->setTimestamp($time_stamp_start);
-        $startDate  = ($length === "Sesssion") ? "Temporary" : $date->format(DATE_TIME_FORMAT);
+        $startDate  = ($length === "Session") ? "Temporary" : $date->format(DATE_TIME_FORMAT);
 
         $date->setTimestamp($time_stamp_end);
         $endDate    = $date->format(DATE_TIME_FORMAT);
