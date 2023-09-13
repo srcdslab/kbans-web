@@ -65,6 +65,9 @@
                         <?php } ?>
                         <option value='4'>Admin Name</option>
                         <option value='5'>Admin SteamID</option>
+                        <?php if(str_contains($_SERVER['REQUEST_URI'], 'logs') == false) { ?>
+                            <option value='6'>Map</option>
+                        <?php } ?>
                     </select>
                 </div>
                 <button type='submit' class='button button-primary kban-form-button' style='width: 90%; margin-left: 5%;'><i class='fa-solid fa-magnifying-glass'></i> Search</button>
