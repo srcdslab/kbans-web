@@ -624,7 +624,8 @@
 		echo "<li>";
 		echo "<span><i class='fa-solid fa-gamepad'></i> Map</span>";
         if ($map != "Web Ban" && $map != "From Web") {
-			echo "<span><a href='https://fastdl.nide.gg/css_ze/maps/$map.bsp.bz2'>$map</a></span>";
+            $fastdl = $GLOBALS['SERVER_FASTDL'];
+			echo "<span><a href='$fastdl/maps/$map.bsp.bz2'>$map</a></span>";
 		} else {
 			echo "<span>$map</span>";
 		}
