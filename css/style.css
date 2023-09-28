@@ -502,6 +502,7 @@ li.layout_box_title {
 .footer {
 	background-color: var(--box--backgroundColor);
 	color: var(--theme-text);
+	width: 100%;
 }
 
 .footer>.layout_container {
@@ -733,6 +734,7 @@ li.layout_box_title {
 	display: none;
 	width: 100%;
 	height: auto;
+	padding-bottom: 10px;
 	justify-content: space-between;
 }
 
@@ -1059,7 +1061,7 @@ input[disabled] {
  * Social Icons
  */
 #steam_group {
-    padding: 5px;
+	padding: 5px;
     border-radius: 1cm;
     background-color: #1b2838 !important;
     color: white;
