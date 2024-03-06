@@ -295,9 +295,15 @@
 			$lengthInMinutes = ($length / 60);
 			$time_stamp_start = time();
 			$time_stamp_end = ($length < 0) ? -1 : (time() + $length);
+	
+			if($length <= -1) {	
+				$lengthInMinutes = 30;	
+			} else if($length == 0) {	
+				$lengthInMinutes = 0;	
+			}
 
 			if ($this->IsSteamIDAlreadyBanned($playerSteamID)) {
-				die(); // You might want to handle this differently, such as showing an error message.
+				die();
 			}
 
 			$insertColumns = array(
@@ -440,8 +446,8 @@
     }
 
     function formatMethod(int $method) {
-        $methods = ["client_steamid", "client_name", "client_ip", "admin_name", "admin_steamid", "map"];
-        return $methods[$method-1];
+	$methods = ["client_steamid", "client_name", "client_ip", "admin_name", "admin_steamid", "map"];
+	return $methods[$method-1];
 	}
 
     function GetRowInfo($id, $result2 = null) {
@@ -563,7 +569,7 @@
         echo "<span><a href='https://steamcommunity.com/profiles/$clientSteamID64' target='_blank'>$clientSteamID</a></span>";
         echo "</li>";
 
-        if(IsAdminLoggedIn()) {
+        if(IsAdminLoggedIn() && $admin->DoesHaveFullAccess()) {
             echo "<li>";
             echo "<span><i class='fas fa-network-wired'></i> IP address</span>";
             echo "<span><a href='https://www.infobyip.com/ip-$clientIP.html' target='_blank'>$clientIP</a></span>";
@@ -601,7 +607,6 @@
         echo "</li>";
 
         if($isRemoved) {
-            echo "<script>ChangeDivaHeight($id);</script>";
             $date->setTimestamp($time_stamp_removed);
             $removedDate = $date->format(DATE_TIME_FORMAT);
 

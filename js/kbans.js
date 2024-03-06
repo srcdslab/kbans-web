@@ -12,11 +12,6 @@ function showKbanInfo(button) {
     }
 }
 
-function ChangeDivaHeight(id) {
-    let diva = '#diva-'+id;
-    $(diva).css('height', '440');
-}
-
 function GoTop() {
     if(document.documentElement.scrollTop > 450 || document.body.scrollTop > 450) {
         document.body.scrollTop = 200;

@@ -133,6 +133,7 @@
                 ?>
                 <div class="input-group">
                     <label for="length"> Duration </label>
+					<p style="font-style: italic; color: var(--theme-text_light); margin-top: 5px;">Enter 0 minutes for a permanent ban</p>
                     <input id="length-edit" type="text" class="input kban-input" value=<?php echo "\"$val\""; ?>style="width: 110px; display: inline-block;">
                     <?php GetKbanLengthTypes(); ?>
                 </div>
