@@ -57,17 +57,17 @@
     $pageActiveNum = 2;
     if($pageType == "all") {
         $pageActiveNum = 0;
-		$pageName = "KBan List";
-		$icon = "<i class='fa-solid fa-house'></i>";
+        $pageName = "KBan List";
+        $icon = "<i class='fa-solid fa-house'></i>";
     } else if($pageType == "active") {
         $pageActiveNum = 1;
-		$pageName = "Active Kban";
-		$icon = "<i class='fa-solid fa-hourglass-half'></i>";
+        $pageName = "Active Kban";
+        $icon = "<i class='fa-solid fa-hourglass-half'></i>";
     } else if($pageType == "expired") {
-		$pageActiveNum = 2;
-		$pageName = "Expired Kban";
-		$icon = "<i class='fa-solid fa-hourglass-end'></i>";
-	}
+        $pageActiveNum = 2;
+        $pageName = "Expired Kban";
+        $icon = "<i class='fa-solid fa-hourglass-end'></i>";
+    }
 
     echo "<script>setActive($pageActiveNum); setModalSearch(\"$pageType\");</script>";
 
@@ -90,7 +90,7 @@
             <div class="container-header">
                 <h1><?php echo "$icon $pageName"; ?></h1>
             </div>
-			<div class="breadcrumb">
+            <div class="breadcrumb">
 <i class="fas fa-angle-right"></i> <a href="index.php?all">Home</a>
 <i class="fas fa-angle-right"></i> <a href="index.php?all"><?php echo "$pageName"; ?></a>
 </div>
@@ -167,6 +167,7 @@
                                         $time_stamp_end     = $result1['time_stamp_end'];
                                         $isExpired          = ($result1['is_expired'] == 1) ? true : false;
                                         $isRemoved          = ($result1['is_removed'] == 1) ? true : false; 
+                                        $map                = $result1['map'];
                                         
                                         $adminName = $admin->GetAdminNameFromSteamID($adminSteamID);
 
@@ -212,7 +213,11 @@
                                         $dateB = $dateA->format(DATE_TIME_FORMAT);
 
                                         echo "<tr class='$class' id-data='$id' id='diva-tr-$id'>";
-                                        echo "<td style='background-color: transparent; align-items: center;'><img src='./images/games/csource.png' border='0' align='absmiddle' alt='css'></td>";
+                                        if ($map != "Web Ban" && $map != "From Web") {
+                                            echo "<td style='background-color: transparent; align-items: center;'><img src='./images/games/csource.png' border='0' align='absmiddle' alt='css'></td>";
+                                        } else {
+                                            echo "<td style='background-color: transparent; align-items: center;'><img src='./images/games/web.png' border='0' align='absmiddle' alt='Web Ban'></td>";
+                                        }
                                         echo "<td>$dateB</td>";
                                         echo "<td>$clientName</td>";
                                         if($count >= 2) {
