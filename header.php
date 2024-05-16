@@ -2,8 +2,10 @@
     include_once('connect.php'); 
     include_once('functions_global.php');
 
+    $ip = filter_var($_SERVER['REMOTE_ADDR'], FILTER_VALIDATE_IP) ? $_SERVER['REMOTE_ADDR'] : '';
+
     $GLOBALS['steamID'] = "";
-    if(isset($_COOKIE['steamID'])) {
+    if(isset($_COOKIE['steamID']) && isset($_COOKIE['secret_key']) && $_COOKIE['secret_key'] === $GLOBALS['SECRET_KEY']) {
         $GLOBALS['steamID'] = $_COOKIE['steamID'];
         $admin = new Admin();
         $admin->UpdateAdminInfo($_COOKIE['steamID']);
@@ -12,20 +14,24 @@
         $steam = new Steam();
         $steamID64 = $steam->SteamID_To_SteamID64($GLOBALS['steamID']);
         $adminURL = "https://steamcommunity.com/profiles/$steamID64";
+    } else {
+        setcookie("steamID", "", 1, "/", $_SERVER['SERVER_NAME'], true, true);
+        setcookie("secret_key", "", 1, "/", $_SERVER['SERVER_NAME'], true, true);
+        setcookie("aid", "", 1, "/", $_SERVER['SERVER_NAME'], true, true);
     }
 ?>
 
 <head>
     <title>KnockBack Bans</title>
-    <link rel="icon" href="images/favicon.ico" />
+    <link rel="icon" href="./images/favicon.ico" />
     <link rel="stylesheet" href="css/style.css">
     <link href="https://fonts.googleapis.com/css?family=Inter:300,300i,400,400i,500,700,700i" rel="stylesheet" referrerpolicy="origin">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 
-	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
-	<script src="https://cdnjs.cloudflare.com/ajax/libs/mustache.js/3.0.0/mustache.js"></script>
-	<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-kenU1KFdBIe4zVF0s0G1M5b4hcpxyD9F7jL+jjXkk+Q2h455rYXK/7HAuoJl+0I4" crossorigin="anonymous"></script>
-	<script src="js/kbans.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mustache.js/3.0.0/mustache.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-kenU1KFdBIe4zVF0s0G1M5b4hcpxyD9F7jL+jjXkk+Q2h455rYXK/7HAuoJl+0I4" crossorigin="anonymous"></script>
+    <script src="js/kbans.js"></script>
 </head>
 <body>
     <div class="hide" style="display: none;"></div>
@@ -60,7 +66,7 @@
                     <select name='m' class='select search-modal-input'>
                         <option value='1'>Player SteamID</option>
                         <option value='2'>Player Name</option>
-                        <?php if(IsAdminLoggedIn()) { ?>
+                        <?php if(IsAdminLoggedIn() && $admin->DoesHaveFullAccess()) { ?>
                             <option value='3'>Player IP</option>
                         <?php } ?>
                         <option value='4'>Admin Name</option>
@@ -78,8 +84,8 @@
     <div class="header1">
         <div class="header1-icons">
             <?php
-				echo '<a id="steam_group" target="_blank" href="'. $GLOBALS['STEAM_GROUP'] .'" rel="noopener" title="Our Steam Group">'
-			?>
+                echo '<a id="steam_group" target="_blank" href="'. $GLOBALS['STEAM_GROUP'] .'" rel="noopener" title="Our Steam Group">'
+            ?>
                 <i class="fab fa-steam-symbol"></i>
             </a>
             <a id="discord" target="_blank" href="https://discord.gg/XhByCBg" rel="noopener" data-ipstooltip="" _title="Join us on Discord">
@@ -100,9 +106,9 @@
     </div>
     <div class="header2">
         <?php
-			echo '<a class="logo" href="'. $GLOBALS['SERVER_FORUM_URL'] .'">'
+            echo '<a class="logo" href="'. $GLOBALS['SERVER_FORUM_URL'] .'">'
         ?>
-            <img src="images/banner.png" alt="logo">
+            <img src="./images/kbans.png" alt="logo">
         </a>
         <div class="search_input">
             <form method="GET" action="index.php">
