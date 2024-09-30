@@ -1,5 +1,12 @@
 <?php
     include_once('steam.php');
+    class Utility {
+        public static function sanitizeInput($input) {
+            $replacements = array("'", '"', "\\", ";", "`", "--", "#", "=", ">", "<", "&", "%", "|", "^", "~", "(", ")");
+            return str_replace($replacements, "", $input);
+        }
+    }
+
     class Admin {
         public $adminID = -1;
         public $adminGroupID = -1;
@@ -18,9 +25,11 @@
         $queryResult = $stmt->get_result();
         $stmt->close();
 
+        // Fetch the result from the query
         $row = $queryResult->fetch_assoc();
         $sbppaid = $row['aid'];
 
+        // Compare the cookie 'aid' with the result from the query
         if (!$bInitialVerification && $sbppaid != $_COOKIE['aid']) {
             return false;
         }
@@ -97,7 +106,7 @@
     }
 
         public function DoesHaveFullAccess() {
-            if(!isset($_COOKIE['steamID'])) {
+            if (!isset($_COOKIE['steamID'])) {
                 return false;
             }
 
@@ -116,7 +125,7 @@
                 $reasonA = "No Reason";
             }
 
-            $reason = str_replace("'", "", $reasonA);
+            $reason = Utility::sanitizeInput($reasonA);
 
             if (!isset($_COOKIE['steamID'])) {
                 return false; // Should never happen but better be safe
@@ -139,6 +148,11 @@
             $sql = "UPDATE `KbRestrict_CurrentBans` SET `is_expired`=1, `is_removed`=1, 
                     `admin_name_removed`=?, `admin_steamid_removed`=?, `reason_removed`=?, 
                     `time_stamp_removed`=? WHERE `id`=?";
+            $stmt = $GLOBALS['DB']->prepare($sql);
+            $stmt->bind_param("sssii", $adminName, $adminSteamID, $reason, $time_removed, $id);
+            $stmt->execute();
+            $stmt->close();
+
 
             $stmt = $GLOBALS['DB']->prepare($sql);
             $stmt->bind_param("ssssi", $adminName, $adminSteamID, $reason, $time_removed, $id);
@@ -169,43 +183,45 @@
 
         public function RemoveKbanFromDB($id) {
             $admin = new Admin();
-            $adminSteamID = (isset($_COOKIE['steamID']) ? $_COOKIE['steamID'] : "");
+            $adminSteamID = isset($_COOKIE['steamID']) ? $_COOKIE['steamID'] : "";
             $admin->UpdateAdminInfo($adminSteamID);
-            if(!IsAdminLoggedIn() || !$admin->DoesHaveFullAccess()) {
+            if (!IsAdminLoggedIn() || !$admin->DoesHaveFullAccess()) {
                 return false;
             }
 
             $resultsC = $this->getKbanInfoFromID($id);
             $playerName = $resultsC['client_name'];
             $playerSteamID = $resultsC['client_steamid'];
-
             $length = $resultsC['length'];
             $reason = $resultsC['reason'];
-            $isExpired = ($resultsC['is_expired'] == 1) ? true : false;
-            $isRemoved = ($resultsC['is_removed'] == 1) ? true : false;
-
+            $isExpired = ($resultsC['is_expired'] == 1);
+            $isRemoved = ($resultsC['is_removed'] == 1);
             $time_stamp_end = $resultsC['time_stamp_end'];
             $status = "Active";
-            if($isExpired && !$isRemoved || ($time_stamp_end >= 1 && time() > $time_stamp_end)) {
+            if ($isExpired && !$isRemoved || ($time_stamp_end >= 1 && time() > $time_stamp_end)) {
                 $status = "Expired";
             }
-
-            if($isRemoved) {
+            if ($isRemoved) {
                 $status = "Removed";
             }
 
             $message = "KBan Deleted (was $length minutes. Issued for: $reason. Kban was $status)";
-            $GLOBALS['DB']->query("DELETE FROM `KbRestrict_CurrentBans` WHERE `id`=$id");
+			
+			$admin->UpdateAdminInfo($_COOKIE['steamID']);
+			$adminName = $admin->adminUser;
+			$adminSteamID = $admin->adminSteamID;
+			$time_stamp = time();
 
-            $admin->UpdateAdminInfo($_COOKIE['steamID']);
-            $adminName = $admin->adminUser;
-            $adminSteamID = $admin->adminSteamID;
+            // Use prepared statements
+            $stmt = $GLOBALS['DB']->prepare("DELETE FROM `KbRestrict_CurrentBans` WHERE `id` = ?");
+            $stmt->bind_param('i', $id);
+            $stmt->execute();
+            $stmt->close();
 
-            $time_stamp = time();
-
-            $sql = "INSERT INTO `KbRestrict_weblogs` (`client_name`, `client_steamid`, `admin_name`, `admin_steamid`, `message`, `time_stamp`)";
-            $sql .= "VALUES ('$playerName', '$playerSteamID', '$adminName', '$adminSteamID', '$message', $time_stamp)";
-            $GLOBALS['DB']->query($sql);
+            $stmt = $GLOBALS['DB']->prepare("INSERT INTO `KbRestrict_weblogs` (`client_name`, `client_steamid`, `admin_name`, `admin_steamid`, `message`, `time_stamp`) VALUES (?, ?, ?, ?, ?, ?)");
+            $stmt->bind_param('sssssi', $playerName, $playerSteamID, $adminName, $adminSteamID, $message, $time_stamp);
+            $stmt->execute();
+            $stmt->close();
 
             echo "<script>showKbanWindowInfo(3, \"$playerName\", \"$playerSteamID\", \"$reason\", \"$length minutes\", $id);</script>";
             //echo "<script>window.location.replace('index.php?all');</script>";
@@ -213,64 +229,64 @@
 
         public function formatLength($seconds) {
             /* if less than one minute */
-            if($seconds < 60) {
+            if ($seconds < 60) {
                 return "$seconds Seconds";
             }
 
             /* if one minute or more */
-            if($seconds >= 60 && $seconds < 3600) {
+            if ($seconds >= 60 && $seconds < 3600) {
                 $minutes = ($seconds / 60);
                 $minutesPhrase = ($minutes > 1) ? "Minutes" : "Minute";
                 return "$minutes $minutesPhrase";
             }
 
             /* If hour or more*/
-            if($seconds >= 3600 && $seconds < 86400) {
+            if ($seconds >= 3600 && $seconds < 86400) {
                 $hours = intval(($seconds / 3600));
                 $minutes = intval((($seconds / 60) % 60));
                 $hoursPhrase = ($hours > 1) ? "Hours" : "Hour";
                 $minutesPhrase = ($minutes > 1) ? "Minutes" : "Minute";
 
-                if($minutes <= 0) {
+                if ($minutes <= 0) {
                     return "$hours $hoursPhrase";
                 }
                 return "$hours $hoursPhrase, $minutes $minutesPhrase";
             }
 
             /* If day or more */
-            if($seconds >= 86400 && $seconds < 604800) {
+            if ($seconds >= 86400 && $seconds < 604800) {
                 $days = intval(($seconds / 86400));
                 $hours = intval((($seconds / 3600) % 24));
                 $daysPhrase = ($days > 1) ? "Days" : "Day";
                 $hoursPhrase = ($hours > 1) ? "Hours" : "Hour";
 
-                if($hours <= 0) {
+                if ($hours <= 0) {
                     return "$days $daysPhrase";
                 }
                 return "$days $daysPhrase, $hours $hoursPhrase";
             }
 
             /* if week or more */
-            if($seconds >= 604800 && $seconds < 2592000) {
+            if ($seconds >= 604800 && $seconds < 2592000) {
                 $weeks = intval(($seconds / 604800));
                 $days = intval((($seconds / 86400) % 7));
                 $weeksPhrase = ($weeks > 1) ? "Weeks" : "Week";
                 $daysPhrase = ($days > 1) ? "Days" : "Day";
                 
-                if($days <= 0) {
+                if ($days <= 0) {
                     return "$weeks $weeksPhrase";
                 }
                 return "$weeks $weeksPhrase, $days $daysPhrase";
             }
 
             /* if month or more */
-            if($seconds >= 2592000) {
+            if ($seconds >= 2592000) {
                 $months = intval(($seconds / 2592000));
                 $days = intval((($seconds / 86400) % 30));
                 $monthsPhrase = ($months > 1) ? "Months" : "Month";
                 $daysPhrase = ($days > 1) ? "Days" : "Day";
 
-                if($days <= 0) {
+                if ($days <= 0) {
                     return "$months $monthsPhrase";
                 }
                 return "$months $monthsPhrase, $days $daysPhrase";
@@ -305,43 +321,33 @@
             $adminName = $admin->adminUser;
             $adminSteamID = $admin->adminSteamID;
 
-            $playerName = str_replace("'", "", $playerNameA);
-            $reason = str_replace("'", "", $reasonA);
+            $playerName = Utility::sanitizeInput($playerNameA);
+            $reason = Utility::sanitizeInput($reasonA);
             $lengthInMinutes = ($length / 60);
             $time_stamp_start = time();
             $time_stamp_end = ($length < 0) ? -1 : (time() + $length);
-    
-            if($length <= -1) {	
-                $lengthInMinutes = 30;	
-            } else if($length == 0) {	
-                $lengthInMinutes = 0;	
+
+            if ($length <= -1) {
+                $lengthInMinutes = 30;
+            } else if ($length == 0) {
+                $lengthInMinutes = 0;
             }
 
             if ($this->IsSteamIDAlreadyBanned($playerSteamID)) {
                 die();
             }
 
-            $insertColumns = array(
-                'client_name', 'client_steamid', 'client_ip',
-                'admin_name', 'admin_steamid', 'reason',
-                'map', 'length', 'time_stamp_start',
-                'time_stamp_end', 'is_expired', 'is_removed',
-                'admin_name_removed', 'admin_steamid_removed', 'time_stamp_removed',
-                'reason_removed'
-            );
+            // Use prepared statements for the insertion into `KbRestrict_CurrentBans`
+            $sql = "INSERT INTO `KbRestrict_CurrentBans` 
+                    (`client_name`, `client_steamid`, `client_ip`, `admin_name`, `admin_steamid`, `reason`, 
+                    `map`, `length`, `time_stamp_start`, `time_stamp_end`, `is_expired`, `is_removed`, 
+                    `admin_name_removed`, `admin_steamid_removed`, `time_stamp_removed`, `reason_removed`) 
+                    VALUES (?, ?, 'Unknown', ?, ?, ?, 'Web Ban', ?, ?, ?, 0, 0, 'null', 'null', '0', 'null')";
 
-            $insertValues = array(
-                $playerName, $playerSteamID, 'Unknown',
-                $adminName, $adminSteamID, $reason,
-                'Web Ban', $lengthInMinutes, $time_stamp_start,
-                $time_stamp_end, 0, 0, 'null', 'null', '0', 'null'
-            );
-
-            $insertColumnsString = implode(', ', $insertColumns);
-            $insertValuesString = "'" . implode("', '", $insertValues) . "'";
-
-            $sql = "INSERT INTO `KbRestrict_CurrentBans` ($insertColumnsString) VALUES ($insertValuesString)";
-            $GLOBALS['DB']->query($sql);
+            $stmt = $GLOBALS['DB']->prepare($sql);
+            $stmt->bind_param("sssiiiii", $playerName, $playerSteamID, $adminName, $adminSteamID, $reason, $lengthInMinutes, $time_stamp_start, $time_stamp_end);
+            $stmt->execute();
+            $stmt->close();
 
             $message = "Kban Added (";
             if ($lengthInMinutes >= 1) {
@@ -353,9 +359,15 @@
             }
             $message .= ")";
 
-            $sql = "INSERT INTO `KbRestrict_weblogs` (`client_name`, `client_steamid`, `admin_name`, `admin_steamid`, `message`, `time_stamp`)";
-            $sql .= "VALUES ('$playerName', '$playerSteamID', '$adminName', '$adminSteamID', '$message', $time_stamp_start)";
-            $GLOBALS['DB']->query($sql);
+            // Use prepared statements for the insertion into `KbRestrict_weblogs`
+            $sql = "INSERT INTO `KbRestrict_weblogs` 
+                    (`client_name`, `client_steamid`, `admin_name`, `admin_steamid`, `message`, `time_stamp`) 
+                    VALUES (?, ?, ?, ?, ?, ?)";
+
+            $stmt = $GLOBALS['DB']->prepare($sql);
+            $stmt->bind_param("sssssi", $playerName, $playerSteamID, $adminName, $adminSteamID, $message, $time_stamp_start);
+            $stmt->execute();
+            $stmt->close();
 
             echo "<script>showKbanWindowInfo(0, \"$playerName\", \"$playerSteamID\", \"$reason\", \"$lengthInMinutes minutes\");</script>";
             //echo "<script>window.location.replace('index.php?all');</script>";
@@ -367,48 +379,52 @@
             $adminName = $admin->adminUser;
             $adminSteamID = $admin->adminSteamID;
 
-            $playerName = str_replace("'", "", $playerNameA);
-            $reason = str_replace("'", "", $reasonA);
+            $playerName = Utility::sanitizeInput($playerNameA);
+            $reason = Utility::sanitizeInput($reasonA);
             $lengthInMinutes = ($length / 60);
-            
+ 
             $info = $this->getKbanInfoFromID($id);
 
             $time_stamp_end = ($info['time_stamp_start'] + $length);
-            if($length <= -1) {
+            if ($length <= -1) {
                 $lengthInMinutes = -1;
                 $time_stamp_end = -1;
-            } else if($length == 0) {
+            } else if ($length == 0) {
                 $lengthInMinutes = 0;
                 $time_stamp_end = 0;
             }
 
             $time = time();
-            if($length >= 1) {
-                if($time_stamp_end < $time) {
+            if ($length >= 1) {
+                if ($time_stamp_end < $time) {
                     $this->UnbanByID($id, "NO REASON");
                     echo "<script>window.location.replace('index.php?all');</script>";
                     die();
                 }
             }
- 
-            $sql = "UPDATE `KbRestrict_CurrentBans` SET `client_name`='$playerName', `client_steamid`='$playerSteamID', `reason`='$reason', `length`=$lengthInMinutes, `time_stamp_end`=$time_stamp_end WHERE `id`=$id";
-            $GLOBALS['DB']->query($sql);
+
+            // Use prepared statements for the UPDATE query
+            $sql = "UPDATE `KbRestrict_CurrentBans` SET `client_name`=?, `client_steamid`=?, `reason`=?, `length`=?, `time_stamp_end`=? WHERE `id`=?";
+            $stmt = $GLOBALS['DB']->prepare($sql);
+            $stmt->bind_param("sssiii", $playerName, $playerSteamID, $reason, $lengthInMinutes, $time_stamp_end, $id);
+            $stmt->execute();
+            $stmt->close();
 
             $message = "Kban Edited (";
-            if($playerName != $info['client_name']) {
+            if ($playerName != $info['client_name']) {
                 $message .= " New Name: $playerName";
             }
-            if($playerSteamID != $info['client_steamid']) {
+            if ($playerSteamID != $info['client_steamid']) {
                 $message .= " New SteamID: $playerSteamID";
             }
-            if($reason != $info['reason']) {
+            if ($reason != $info['reason']) {
                 $message .= " New Reason: $reason"; 
             }
 
-            if($lengthInMinutes != $info['length']) {
-                if($lengthInMinutes >= 1) {
+            if ($lengthInMinutes != $info['length']) {
+                if ($lengthInMinutes >= 1) {
                     $message .= " New Length: $lengthInMinutes Minutes";
-                } else if($lengthInMinutes == 0) {
+                } else if ($lengthInMinutes == 0) {
                     $message .= " New Length: Permanent";
                 } else {
                     $message .= " New Length: Session";
@@ -420,10 +436,12 @@
             $playerNameOld = $info['client_name'];
             $playerSteamIDOld = $info['client_steamid'];
 
-            $sql = "INSERT INTO `KbRestrict_weblogs` (`client_name`, `client_steamid`, `admin_name`, `admin_steamid`, `message`, `time_stamp`)";
-            $sql .= "VALUES ('$playerNameOld', '$playerSteamIDOld', '$adminName', '$adminSteamID', '$message', $time)";
-
-            $GLOBALS['DB']->query($sql);
+            // Use prepared statements for the INSERT query
+            $sql = "INSERT INTO `KbRestrict_weblogs` (`client_name`, `client_steamid`, `admin_name`, `admin_steamid`, `message`, `time_stamp`) VALUES (?, ?, ?, ?, ?, ?)";
+            $stmt = $GLOBALS['DB']->prepare($sql);
+            $stmt->bind_param("sssssi", $playerNameOld, $playerSteamIDOld, $adminName, $adminSteamID, $message, $time);
+            $stmt->execute();
+            $stmt->close();
 
             echo "<script>showKbanWindowInfo(1, \"$playerName\", \"$playerSteamID\", \"$reason\", \"$lengthInMinutes minutes\");</script>";
             //echo "<script>window.location.replace('index.php?all');</script>";
@@ -458,7 +476,7 @@
         $secret_key = $_COOKIE['secret_key'];
 
         $admin = new Admin();
-        if($admin->IsLoginValid($steamID, $secret_key, false)) {
+        if ($admin->IsLoginValid($steamID, $secret_key, false)) {
             return true;
         }
 
@@ -474,7 +492,7 @@
         $admin = new Admin();
         $kban = new Kban();
         
-        if($id != 0) {
+        if ($id != 0) {
             $result2 = $kban->getKbanInfoFromID($id);
         } else {
             $id = $result2['id'];
@@ -498,26 +516,26 @@
 
         $length = $kban->formatLength(($time_stamp_end - $time_stamp_start));
 
-        if($time_stamp_end == 0) {
+        if ($time_stamp_end == 0) {
             $length = "Permanent";
-        } else if($time_stamp_end <= -1) {
+        } else if ($time_stamp_end <= -1) {
             $length = "Session";
         }
 
         $status = "Kban Active";
-        if($isExpired && !$isRemoved || ($time_stamp_end >= 1 && time() > $time_stamp_end)) {
+        if ($isExpired && !$isRemoved || ($time_stamp_end >= 1 && time() > $time_stamp_end)) {
             $status = "Kban Expired";
         }
 
-        if($isRemoved) {
+        if ($isRemoved) {
             $status = "Kban Removed";
         }
 
         echo "<div class='kban-buttons'>";
         
          $searchMethod = 1;
-        if(IsAdminLoggedIn()) {
-            if($clientSteamID == "NO STEAMID") {
+        if (IsAdminLoggedIn()) {
+            if ($clientSteamID == "NO STEAMID") {
                 $href = "ViewPlayerHistory(\"$clientIP\", 3)";
                 $searchMethod = 3;
             } else {
@@ -525,7 +543,7 @@
                 $searchMethod = 1;
             }
         } else {
-            if($clientSteamID != "NO STEAMID") {
+            if ($clientSteamID != "NO STEAMID") {
                 $href = "ViewPlayerHistory(\"$clientSteamID\", 1);";
                 $searchMethod = 1;
             } else {
@@ -533,35 +551,35 @@
             }
         }
 
-        if(IsAdminLoggedIn() || ($searchMethod == 1 && !IsAdminLoggedIn())) {
+        if (IsAdminLoggedIn() || ($searchMethod == 1 && !IsAdminLoggedIn())) {
             echo "<button onclick='$href' class='button button-light' title='View History'><i class='fa-solid fa-clock-rotate-left'></i>&nbspView History</button>";
         }
 
-        if(IsAdminLoggedIn()) {
+        if (IsAdminLoggedIn()) {
             $admin->UpdateAdminInfo($_COOKIE['steamID']);
 
-            if(($time_stamp_end < 1 && $isRemoved == false && $isExpired == false) || ($time_stamp_end >= 1 && time() < $time_stamp_end && $isRemoved == false && $isExpired == false)) {
+            if (($time_stamp_end < 1 && $isRemoved == false && $isExpired == false) || ($time_stamp_end >= 1 && time() < $time_stamp_end && $isRemoved == false && $isExpired == false)) {
             
-                if($admin->DoesHaveFullAccess() || $adminSteamID == $admin->adminSteamID) {
+                if ($admin->DoesHaveFullAccess() || $adminSteamID == $admin->adminSteamID) {
                     $editFunction = "EditFromID(\"$id\")";
                     echo "<button class='button button-primary' title='Edit' onclick='$editFunction'><i class='fa-regular fa-pen-to-square'></i>&nbspEdit Details</button>";
                     $unbanFunction = "ConfirmUnban($id, \"$clientName\", \"$clientSteamID\");";
                     echo "<button class='button button-important' title='Unban' onclick='$unbanFunction'><i class='fas fa-undo fa-lg'></i>&nbspUnban</button>";
                 }
             } else {
-                if($clientSteamID != "NO STEAMID" && !$kban->IsSteamIDAlreadyBanned($clientSteamID)) {
+                if ($clientSteamID != "NO STEAMID" && !$kban->IsSteamIDAlreadyBanned($clientSteamID)) {
                     $reBanFunction = "RebanFromID(\"$id\");";
                     echo "<button class='button button-important' title='Reban' onclick='$reBanFunction'><i class='fas fa-redo fa-lg'></i>&nbspReban</button>";
                 }
             }
         }
 
-        if($admin->DoesHaveFullAccess()) {
+        if ($admin->DoesHaveFullAccess()) {
             $deleteFunction = "RemoveKbanFromDBCheck($id);";
             echo "<button class='button button-important' title='Delete' onclick='$deleteFunction'><i class='fa-solid fa-trash'></i>&nbspDelete KBan</button>";
         }
 
-        if(!IsAdminLoggedIn()) {
+        if (!IsAdminLoggedIn()) {
             $href = "Login();";
             echo "<button onclick='$href' class='button button-success' title='Sign in'>Admin? Sign in</button>";
         }
@@ -589,7 +607,7 @@
         echo "<span><a href='https://steamcommunity.com/profiles/$clientSteamID64' target='_blank'>$clientSteamID</a></span>";
         echo "</li>";
 
-        if(IsAdminLoggedIn() && $admin->DoesHaveFullAccess()) {
+        if (IsAdminLoggedIn() && $admin->DoesHaveFullAccess()) {
             echo "<li>";
             echo "<span><i class='fas fa-network-wired'></i> IP address</span>";
             echo "<span><a href='https://www.infobyip.com/ip-$clientIP.html' target='_blank'>$clientIP</a></span>";
@@ -626,7 +644,7 @@
         echo "<span>$status</span>";
         echo "</li>";
 
-        if($isRemoved) {
+        if ($isRemoved) {
             $date->setTimestamp($time_stamp_removed);
             $removedDate = $date->format(DATE_TIME_FORMAT);
 
@@ -665,10 +683,10 @@
         echo "<optgroup label='Minutes'>";
         for($second = 1; $second < 3600; $second++) {
             /* we want 10, 30, and 50 minutes */
-            if($second == (10*60) || $second == (30*60) || $second == (50*60)) {
+            if ($second == (10*60) || $second == (30*60) || $second == (50*60)) {
                 $minutes = ($second / 60);
                 $minutesToSeconds = ($minutes * 60);
-                if($second == $minutesToSeconds) { //
+                if ($second == $minutesToSeconds) { //
                     echo "<option value='$second'>$minutes Minutes</option>";
                 }
             }
@@ -678,11 +696,11 @@
         echo "<optgroup label='Hours'>";
         for($second = 1; $second < (3600 * 24); $second++) {
             /* we want 1, 2, 4, 8, and 16 hours */
-            if($second == (1*60*60) || $second == (2*60*60) || $second == (4*60*60) ||
+            if ($second == (1*60*60) || $second == (2*60*60) || $second == (4*60*60) ||
                 $second == (8*60*60) || $second == (16*60*60)) {
                 $hours = ($second / (60 * 60));
                 $hoursToSeconds = ($hours * (60 * 60));
-                if($second == $hoursToSeconds) { //
+                if ($second == $hoursToSeconds) { //
                     echo "<option value='$second'>$hours Hours</option>";
                 }
             }
@@ -693,10 +711,10 @@
 
         for($second = 1; $second <= (3600 * 24 * 3); $second++) {
             /* we want 1, 2, 3 days */
-            if($second == (1*60*60*24) || $second == (2*60*60*24) || $second == (3*60*60*24)) {
+            if ($second == (1*60*60*24) || $second == (2*60*60*24) || $second == (3*60*60*24)) {
                 $days = ($second / (60 * 60 * 24));
                 $daysToSeconds = ($days * (60 * 60 * 24));
-                if($second == $daysToSeconds) { //
+                if ($second == $daysToSeconds) { //
                     echo "<option value='$second'>$days Days</option>";
                 }
             }
@@ -707,10 +725,10 @@
         
         for($second = 1; $second <= (3600 * 24 * 7 * 3); $second++) {
             /* we want 1, 2, 3 weeks */
-            if($second == (1*60*60*24*7) || $second == (2*60*60*24*7) || $second == (3*60*60*24*7)) {
+            if ($second == (1*60*60*24*7) || $second == (2*60*60*24*7) || $second == (3*60*60*24*7)) {
                 $weeks = ($second / (60 * 60 * 24 * 7));
                 $weeksToSeconds = ($weeks * (60 * 60 * 24 * 7));
-                if($second == $weeksToSeconds) { //
+                if ($second == $weeksToSeconds) { //
                     echo "<option value='$second'>$weeks Weeks</option>";
                 }
             }
@@ -720,10 +738,10 @@
         echo "<optgroup label='Months'>";
         for($second = 1; $second <= (3600 * 24 * 30 * 3); $second++) {
             /* we want 1, 2, 3 months */
-            if($second == (1*60*60*24*30) || $second == (2*60*60*24*30) || $second == (3*60*60*24*30)) {
+            if ($second == (1*60*60*24*30) || $second == (2*60*60*24*30) || $second == (3*60*60*24*30)) {
                 $months = ($second / (60 * 60 * 24 * 30));
                 $monthsToSeconds = ($months * (60 * 60 * 24 * 30));
-                if($second == $monthsToSeconds) { //
+                if ($second == $monthsToSeconds) { //
                     echo "<option value='$second'>$months Months</option>";
                 }
             }
@@ -732,7 +750,7 @@
         echo "</optgroup>";
         $admin = new Admin();
         $admin->UpdateAdminInfo($GLOBALS['steamID']);
-        if($admin->DoesHaveFullAccess()) {
+        if ($admin->DoesHaveFullAccess()) {
             echo "<optgroup label='Others'>";
             echo "<option value='0'>Permanent</option>";
             echo "</optgroup>";
