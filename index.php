@@ -203,10 +203,13 @@
                                         }
 
                                         $count = 0;
+                                        $realcount = 0;
                                         if($clientSteamID == "NO STEAMID") {
                                             $count = $kban->GetKbansNumber("", $clientIP);
+                                            $realcount = $kban->GetRealKbansNumber($clientIP);
                                         } else {
                                             $count = $kban->GetKbansNumber($clientSteamID);
+                                            $realcount = $kban->GetRealKbansNumber($clientSteamID);
                                         }
 
                                         $dateA->setTimestamp($time_stamp_start);
@@ -221,7 +224,11 @@
                                         echo "<td>$dateB</td>";
                                         echo "<td>$clientName</td>";
                                         if($count >= 2) {
-                                            echo "<td style='color: var(--theme-text); font-weight: bold; padding: 0;' class='count' id='$id-count' count='$count' steamid='$clientSteamID'>$count <i class='fa-solid fa-ban'></i></td>";
+                                            if ($count == $realcount) {
+                                                echo "<td style='color: var(--theme-text); padding: 0;' class='count' id='$id-count' count='$count' steamid='$clientSteamID'><i class='fa-solid fa-ban'></i> <b>$realcount</b></td>";
+                                            } else {
+                                                echo "<td style='color: var(--theme-text); padding: 0;' class='count' id='$id-count' count='$count' steamid='$clientSteamID'><i class='fa-solid fa-ban'></i> <b>$realcount</b> ($count)</td>";
+                                            }
                                         } else {
                                             echo "<td></td>";
                                         }

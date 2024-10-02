@@ -314,6 +314,16 @@
             $queryA->free();
             return $rows;
         }
+        
+        public function GetRealKbansNumber($steamID, $IP = "") {
+            $search = (empty($steamID)) ? $IP : $steamID;
+            $searchMethod = (empty($steamID)) ? "client_ip" : "client_steamid";
+
+            $queryA = $GLOBALS['DB']->query("SELECT * FROM `KbRestrict_CurrentBans` WHERE `$searchMethod`='$search' AND `is_removed`=0");
+            $rows = $queryA->num_rows;
+            $queryA->free();
+            return $rows;
+        }
 
         public function addNewKban($playerNameA, $playerSteamID, $length, $reasonA) {
             $admin = new Admin();
