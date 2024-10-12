@@ -355,7 +355,7 @@
                     VALUES (?, ?, 'Unknown', ?, ?, ?, 'Web Ban', ?, ?, ?, 0, 0, 'null', 'null', '0', 'null')";
 
             $stmt = $GLOBALS['DB']->prepare($sql);
-            $stmt->bind_param("sssiiiii", $playerName, $playerSteamID, $adminName, $adminSteamID, $reason, $lengthInMinutes, $time_stamp_start, $time_stamp_end);
+            $stmt->bind_param("sssssiii", $playerName, $playerSteamID, $adminName, $adminSteamID, $reason, $lengthInMinutes, $time_stamp_start, $time_stamp_end);
             $stmt->execute();
             $stmt->close();
 
