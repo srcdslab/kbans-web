@@ -155,33 +155,54 @@
 </div>
 </body>
     <script>
-        $(function() {
+            $(function() {
+                function verifyAndConvertSteamID(steamID, callback) {
+                    $.ajax({
+                        url: 'verify_steamid.php',
+                        type: 'POST',
+                        data: { steamid: steamID },
+                        success: function(response) {
+                            const result = JSON.parse(response);
+                            callback(result);
+                        },
+                        error: function() {
+                            alert('Error verifying SteamID.');
+                        }
+                    });
+                }
+
             $('#add-button').on('click', function() {
                 let playerName = $('#playerName').val();
                 let playerSteamID = $('#playerSteamID').val();
                 let reason = $('#reason').val();
-                
                 let length = 30;
-                <?php if($add == true) { ?>
+
+                <?php if ($add == true) { ?>
                     length = $('#add-select').val();
                 <?php } else { ?>
                     length = $('#length-edit').val();
                     let select = $('#edit-select').val();
 
-                    if(select == 2) {
+                    if (select == 2) {
                         length *= 60;
-                    } else if(select == 3) {
+                    } else if (select == 3) {
                         length *= 60 * 60;
-                    } else if(select == 4) {
+                    } else if (select == 4) {
                         length *= 60 * 60 * 24;
-                    } else if(select == 5) {
+                    } else if (select == 5) {
                         length *= 60 * 60 * 24 * 7;
-                    } else if(select == 6) {
+                    } else if (select == 6) {
                         length *= 60 * 60 * 24 * 30;
                     }
                 <?php } ?>
 
-                addNewKban(playerName, playerSteamID, length, reason);
+                verifyAndConvertSteamID(playerSteamID, function(response) {
+                    if (response.success) {
+                        addNewKban(playerName, response.steamID2, length, reason);
+                    } else {
+                        alert('Invalid SteamID: ' + response.error);
+                    }
+                });
             });
 
             $('#edit-button').on('click', function() {
@@ -192,19 +213,25 @@
                 let length = $('#length-edit').val();
                 let select = $('#edit-select').val();
 
-                if(select == 2) {
+                if (select == 2) {
                     length *= 60;
-                } else if(select == 3) {
+                } else if (select == 3) {
                     length *= 60 * 60;
-                } else if(select == 4) {
+                } else if (select == 4) {
                     length *= 60 * 60 * 24;
-                } else if(select == 5) {
+                } else if (select == 5) {
                     length *= 60 * 60 * 24 * 7;
-                } else if(select == 6) {
+                } else if (select == 6) {
                     length *= 60 * 60 * 24 * 30;
                 }
 
-                EditKban(id, playerName, playerSteamID, length, reason);
+                verifyAndConvertSteamID(playerSteamID, function(response) {
+                    if (response.success) {
+                        EditKban(id, playerName, response.steamID2, length, reason);
+                    } else {
+                        alert('Invalid SteamID: ' + response.error);
+                    }
+                });
             });
         });
     </script>
