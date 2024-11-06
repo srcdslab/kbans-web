@@ -28,11 +28,21 @@
     if(isset($_GET['s'])) {
         $input = $_GET['s'];
         $method = formatMethod(intval($_GET['m']));
-        if($method == "client_steamid" || $method == "client_ip" || $method == "admin_steamid") {
+        if($method == "client_steamid" || $method == "admin_steamid") {
             if(!str_contains($input, "STEAMID")) {
                 if(str_contains($input, " ")) {
                     $input = str_replace(" ", "", $input);
                 }
+            }
+
+            $steam = new Steam();
+            $result = $steam->verifyAndConvertSteamID($input);
+
+            if ($result['success']) {
+                $convertedSteamID = $result['steamID2'];
+                $input = $convertedSteamID;
+            } else {
+                error_log("Error converting SteamID: " . $result['error']);
             }
         }
 
