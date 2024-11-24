@@ -58,6 +58,10 @@
     }
 
         public function UpdateAdminInfo($steamID) {
+            if (!isset($_COOKIE['secret_key'])) {
+                return false;
+            }
+
             $secret_key = $_COOKIE['secret_key'];
             if (!$this->IsLoginValid($steamID, $secret_key, false)) {
                 return false;
@@ -478,9 +482,9 @@
     }
 
     function IsAdminLoggedIn() {
-        if (!isset($_COOKIE['steamID'])) {
-        return false;
-    }
+        if(!isset($_COOKIE['steamID']) || !isset($_COOKIE['secret_key'])) {
+            return false;
+        }
 
         $steamID = $_COOKIE['steamID'];
         $secret_key = $_COOKIE['secret_key'];
