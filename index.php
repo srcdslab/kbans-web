@@ -17,11 +17,13 @@
 
     $sql = "SELECT * FROM `KbRestrict_CurrentBans`";
     $pageType = "all";
+	$currentTime = time();
     if(isset($_GET['active'])) {
-        $sql .= " WHERE `is_removed`=0 AND `is_expired`=0 ";
+		$currentTime = time();
+        $sql .= " WHERE `is_removed`=0 AND `is_expired`=0 AND (time_stamp_end = 0 OR time_stamp_end > $currentTime)";
         $pageType = "active";
     } else if(isset($_GET['expired'])) {
-        $sql .= " WHERE `is_expired`=1 ";
+        $sql .= " WHERE (`is_expired`=1 OR (time_stamp_end > 1 AND time_stamp_end <= " . $currentTime . "))";
         $pageType = "expired";
     }
 
