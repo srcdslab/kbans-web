@@ -19,7 +19,7 @@
         setcookie("secret_key", "", 1, "/", $_SERVER['SERVER_NAME'], true, true);
         setcookie("aid", "", 1, "/", $_SERVER['SERVER_NAME'], true, true);
     }
-?>e
+?>
 
 <head>
     <title>KnockBack Bans</title>
