@@ -635,7 +635,11 @@
         if (IsAdminLoggedIn() && $admin->DoesHaveFullAccess()) {
             echo "<li>";
             echo "<span><i class='fas fa-network-wired'></i> IP address</span>";
-            echo "<span><a href='https://www.infobyip.com/ip-$clientIP.html' target='_blank'>$clientIP</a></span>";
+            if ($clientIP == "Unknown" || $clientIP == "unknown") {
+                echo "<span>$clientIP</span>";
+            } else {
+                echo "<span><a href='https://www.infobyip.com/ip-$clientIP.html' target='_blank'>$clientIP</a></span>";
+            }
             echo "</li>";
         }
 
