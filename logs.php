@@ -49,7 +49,19 @@
     if(isset($_GET['s'])) {
         $input = $_GET['s'];
         $method = formatMethod(intval($_GET['m']));
-        $sql .= " WHERE `$method` LIKE '%$input%'";
+
+        if($method == "client_steamid" || $method == "admin_steamid") {
+            $input = str_replace(" ", "", $input);
+            $steam = new Steam();
+            $result = $steam->verifyAndConvertSteamID($input);
+            if ($result['success']) {
+                $input = $result['steamID2'];
+            } else {
+                error_log("Error converting SteamID: " . $result['error']);
+            }
+        }
+
+        $sql .= " WHERE `$method` LIKE '%" . $GLOBALS['DB']->real_escape_string($input) . "%'";
     }
 
     $sql_query = $GLOBALS['DB']->query($sql);

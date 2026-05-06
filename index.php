@@ -29,25 +29,20 @@
 
     if(isset($_GET['s']) || isset($_GET['m'])) {
         $input = $_GET['s'];
-        $queryComplete = "LIKE '%$input%'";
 
         $method = formatMethod(intval($_GET['m']));
         if($method == "client_steamid" || $method == "admin_steamid") {
-            if(!str_contains($input, "STEAMID")) {
-                if(str_contains($input, " ")) {
-                    $input = str_replace(" ", "", $input);
-                }
-            }
+            $input = str_replace(" ", "", $input);
 
             $steam = new Steam();
             $result = $steam->verifyAndConvertSteamID($input);
 
             if ($result['success']) {
-                $convertedSteamID = $result['steamID2'];
-                $input = $convertedSteamID;
+                $input = $result['steamID2'];
             } else {
                 error_log("Error converting SteamID: " . $result['error']);
             }
+            $queryComplete = "LIKE '%" . $GLOBALS['DB']->real_escape_string($input) . "%'";
         } else if($method == "length" && isset($_GET['length'])) {
             $lengthArray = $_GET['length'];
             $lengthOperatorVal = intval($lengthArray[0]); // like greater or less or shit like this
@@ -69,6 +64,8 @@
             }
 
             $queryComplete = $lengthOperator . " " . $length;
+        } else {
+            $queryComplete = "LIKE '%" . $GLOBALS['DB']->real_escape_string($input) . "%'";
         }
 
         if(str_contains($sql, "WHERE")) {
