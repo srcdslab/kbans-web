@@ -27,23 +27,20 @@
         $pageType = "expired";
     }
 
-    if(isset($_GET['s']) || isset($_GET['m'])) {
-        $input = $_GET['s'];
-        $queryComplete = "LIKE '%$input%'";
+    if(isset($_GET['m']) && (isset($_GET['s']) || isset($_GET['length']))) {
+        $input = isset($_GET['s']) ? trim($_GET['s']) : "";
+        $queryComplete = "";
         $method = formatMethod(intval($_GET['m']));
-        if($method == "client_steamid" || $method == "admin_steamid") {
-            if(!str_contains($input, "STEAMID")) {
-                if(str_contains($input, " ")) {
-                    $input = str_replace(" ", "", $input);
-                }
-            }
 
+        if($method == "client_steamid" || $method == "admin_steamid") {
             $steam = new Steam();
-            $result = $steam->verifyAndConvertSteamID($input);
+            $result = $steam->verifyAndConvertSteamID(str_replace(" ", "", $input));
 
             if ($result['success']) {
                 $convertedSteamID = $result['steamID2'];
-                $input = $convertedSteamID;
+                if(!empty($convertedSteamID)) {
+                    $input = $convertedSteamID;
+                }
             } else {
                 error_log("Error converting SteamID: " . $result['error']);
             }
@@ -69,6 +66,11 @@
 
                 $queryComplete = $lengthOperator . " " . $length;
             }
+
+        if($queryComplete == "") {
+            $input = $GLOBALS['DB']->real_escape_string($input);
+            $queryComplete = "LIKE '%$input%'";
+        }
 
         if(str_contains($sql, "WHERE")) {
             $sql .= " AND ";
