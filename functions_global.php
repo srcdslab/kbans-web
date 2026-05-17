@@ -153,12 +153,6 @@
                     `admin_name_removed`=?, `admin_steamid_removed`=?, `reason_removed`=?, 
                     `time_stamp_removed`=? WHERE `id`=?";
             $stmt = $GLOBALS['DB']->prepare($sql);
-            $stmt->bind_param("sssii", $adminName, $adminSteamID, $reason, $time_removed, $id);
-            $stmt->execute();
-            $stmt->close();
-
-
-            $stmt = $GLOBALS['DB']->prepare($sql);
             $stmt->bind_param("ssssi", $adminName, $adminSteamID, $reason, $time_removed, $id);
             $stmt->execute();
             $stmt->close();
@@ -298,24 +292,26 @@
         }
 
         public function getKbanInfoFromID($id) {
-            $sql = "SELECT * FROM `KbRestrict_CurrentBans` WHERE `id`='$id'";
-            $query = $GLOBALS['DB']->query($sql);
-
-            $results = $query->fetch_all(MYSQLI_ASSOC);
-            $query->free();
-
-            foreach($results as $result) {
-                return $result;
-            }
+            $stmt = $GLOBALS['DB']->prepare("SELECT * FROM `KbRestrict_CurrentBans` WHERE `id` = ?");
+            $stmt->bind_param("i", $id);
+            $stmt->execute();
+            $query = $stmt->get_result();
+            $result = $query->fetch_assoc();
+            $stmt->close();
+            return $result ?: null;
         }
 
         public function GetKbansNumber($steamID, $IP = "") {
             $search = (empty($steamID)) ? $IP : $steamID;
             $searchMethod = (empty($steamID)) ? "client_ip" : "client_steamid";
             
-            $queryA = $GLOBALS['DB']->query("SELECT * FROM `KbRestrict_CurrentBans` WHERE `$searchMethod`='$search'");
-            $rows = $queryA->num_rows;
-            $queryA->free();
+            $stmt = $GLOBALS['DB']->prepare("SELECT COUNT(*) AS total FROM `KbRestrict_CurrentBans` WHERE `$searchMethod` = ?");
+            $stmt->bind_param("s", $search);
+            $stmt->execute();
+            $queryA = $stmt->get_result();
+            $row = $queryA->fetch_assoc();
+            $stmt->close();
+            $rows = intval($row['total'] ?? 0);
             return $rows;
         }
         
@@ -323,9 +319,13 @@
             $search = (empty($steamID)) ? $IP : $steamID;
             $searchMethod = (empty($steamID)) ? "client_ip" : "client_steamid";
 
-            $queryA = $GLOBALS['DB']->query("SELECT * FROM `KbRestrict_CurrentBans` WHERE `$searchMethod`='$search' AND `is_removed`=0");
-            $rows = $queryA->num_rows;
-            $queryA->free();
+            $stmt = $GLOBALS['DB']->prepare("SELECT COUNT(*) AS total FROM `KbRestrict_CurrentBans` WHERE `$searchMethod` = ? AND `is_removed` = 0");
+            $stmt->bind_param("s", $search);
+            $stmt->execute();
+            $queryA = $stmt->get_result();
+            $row = $queryA->fetch_assoc();
+            $stmt->close();
+            $rows = intval($row['total'] ?? 0);
             return $rows;
         }
 
@@ -465,9 +465,12 @@
         }
 
         public function IsSteamIDAlreadyBanned($steamID) {
-            $query = $GLOBALS['DB']->query("SELECT * FROM `KbRestrict_CurrentBans` WHERE `client_steamid`='$steamID'");
+            $stmt = $GLOBALS['DB']->prepare("SELECT * FROM `KbRestrict_CurrentBans` WHERE `client_steamid` = ?");
+            $stmt->bind_param("s", $steamID);
+            $stmt->execute();
+            $query = $stmt->get_result();
             $results = $query->fetch_all(MYSQLI_ASSOC);
-            $query->free();
+            $stmt->close();
 
             foreach ($results as $result) {
                 $isActive = ($result['is_expired'] == 0 && $result['is_removed'] == 0);
@@ -498,6 +501,30 @@
         }
 
         return false;
+    }
+
+    function EnsureCsrfToken() {
+        if (session_status() !== PHP_SESSION_ACTIVE) {
+            session_start();
+        }
+
+        if (empty($_SESSION['csrf_token'])) {
+            $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+        }
+
+        return $_SESSION['csrf_token'];
+    }
+
+    function ValidateCsrfToken($token) {
+        if (session_status() !== PHP_SESSION_ACTIVE) {
+            session_start();
+        }
+
+        if (empty($_SESSION['csrf_token']) || empty($token)) {
+            return false;
+        }
+
+        return hash_equals($_SESSION['csrf_token'], $token);
     }
 
     function formatMethod(int $method) {
