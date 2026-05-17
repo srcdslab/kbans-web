@@ -46,22 +46,24 @@
     $sql = "SELECT * FROM ";
     $sql .= ($isWeb) ? "`KbRestrict_weblogs`" : "`KbRestrict_srvlogs`";
 
-    if(isset($_GET['s'])) {
-        $input = $_GET['s'];
+    if(isset($_GET['s']) && isset($_GET['m'])) {
+        $input = trim($_GET['s']);
         $method = formatMethod(intval($_GET['m']));
 
         if($method == "client_steamid" || $method == "admin_steamid") {
-            $input = str_replace(" ", "", $input);
+            $steamInput = str_replace(" ", "", $input);
             $steam = new Steam();
-            $result = $steam->verifyAndConvertSteamID($input);
-            if ($result['success']) {
+            $result = $steam->verifyAndConvertSteamID($steamInput);
+
+            if ($result['success'] && !empty($result['steamID2'])) {
                 $input = $result['steamID2'];
             } else {
                 error_log("Error converting SteamID: " . $result['error']);
             }
         }
 
-        $sql .= " WHERE `$method` LIKE '%" . $GLOBALS['DB']->real_escape_string($input) . "%'";
+        $input = $GLOBALS['DB']->real_escape_string($input);
+        $sql .= " WHERE `$method` LIKE '%$input%'";
     }
 
     $sql_query = $GLOBALS['DB']->query($sql);
