@@ -502,7 +502,7 @@
 
     function formatMethod(int $method) {
         $methods = ["client_steamid", "client_name", "client_ip", "admin_name", "admin_steamid", "map", "length"];
-        return $methods[$method-1];
+        return $methods[$method-1] ?? $methods[0];
     }
 
     function GetRowInfo($id, $result2 = null) {
