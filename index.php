@@ -17,9 +17,9 @@
 
     $sql = "SELECT * FROM `KbRestrict_CurrentBans`";
     $pageType = "all";
-	$currentTime = time();
+    $currentTime = time();
     if(isset($_GET['active'])) {
-		$currentTime = time();
+        $currentTime = time();
         $sql .= " WHERE `is_removed`=0 AND `is_expired`=0 AND (time_stamp_end = 0 OR time_stamp_end > $currentTime)";
         $pageType = "active";
     } else if(isset($_GET['expired'])) {
@@ -30,7 +30,6 @@
     if(isset($_GET['s']) || isset($_GET['m'])) {
         $input = $_GET['s'];
         $queryComplete = "LIKE '%$input%'";
-
         $method = formatMethod(intval($_GET['m']));
         if($method == "client_steamid" || $method == "admin_steamid") {
             if(!str_contains($input, "STEAMID")) {
@@ -48,28 +47,28 @@
             } else {
                 error_log("Error converting SteamID: " . $result['error']);
             }
-        } else if($method == "length" && isset($_GET['length'])) {
-            $lengthArray = $_GET['length'];
-            $lengthOperatorVal = intval($lengthArray[0]); // like greater or less or shit like this
-            $lengthOperator = "=";
+        } else if ($method == "length" && isset($_GET['length'])) {
+                $lengthArray = $_GET['length'];
+                $lengthOperatorVal = intval($lengthArray[0]); // like greater or less or shit like this
+                $lengthOperator = "=";
 
-            if($lengthOperatorVal == 2) {$lengthOperator = ">";}
-            if($lengthOperatorVal == 3) {$lengthOperator = "<";}
-            if($lengthOperatorVal == 4) {$lengthOperator = ">=";}
-            if($lengthOperatorVal == 5) {$lengthOperator = "<=";}
+                if($lengthOperatorVal == 2) {$lengthOperator = ">";}
+                if($lengthOperatorVal == 3) {$lengthOperator = "<";}
+                if($lengthOperatorVal == 4) {$lengthOperator = ">=";}
+                if($lengthOperatorVal == 5) {$lengthOperator = "<=";}
 
-            $length;
-            if(isset($_GET['custom']) && $lengthArray[1] == -2) {
-                $length = intval($_GET['custom']); // in minutes
-            } else {
-                $length = $lengthArray[1];
-                if($length != -1) {
-                    $length = $length / 60; // we need to get length in minutes
+                $length;
+                if(isset($_GET['custom']) && $lengthArray[1] == -2) {
+                    $length = intval($_GET['custom']); // in minutes
+                } else {
+                    $length = $lengthArray[1];
+                    if($length != -1) {
+                        $length = $length / 60; // we need to get length in minutes
+                    }
                 }
-            }
 
-            $queryComplete = $lengthOperator . " " . $length;
-        }
+                $queryComplete = $lengthOperator . " " . $length;
+            }
 
         if(str_contains($sql, "WHERE")) {
             $sql .= " AND ";
@@ -92,7 +91,7 @@
     $pageActiveNum = 2;
     if($pageType == "all") {
         $pageActiveNum = 0;
-        $pageName = "KBan List";
+        $pageName = "Kban List";
         $icon = "<i class='fa-solid fa-house'></i>";
     } else if($pageType == "active") {
         $pageActiveNum = 1;
@@ -206,7 +205,7 @@
                                             $isExpired          = ($result1['is_expired'] == 1) ? true : false;
                                             $isRemoved          = ($result1['is_removed'] == 1) ? true : false; 
                                             $map                = $result1['map'];
-                                            
+
                                             $adminName = $admin->GetAdminNameFromSteamID($adminSteamID);
 
                                             $length = $kban->formatLength(($time_stamp_end - $time_stamp_start));
@@ -273,7 +272,7 @@
                                             echo "<td>$reason</td>";
                                             echo "<td>$adminName</td>";
                                             echo "<td class='row-length' id='length-$id'>$length</td>";
-                                        
+
                                             echo "</tr>";
 
                                             echo "<tr id='diva-$id-tr' style='display: none; width: 100%; height: 100%;'>";
