@@ -216,7 +216,10 @@
 
         $id = (int) filter_input(INPUT_POST, 'deleteid', FILTER_SANITIZE_NUMBER_INT);
         $kban = new Kban();
-        $kban->RemoveKbanFromDB($id);
+        if (!$kban->RemoveKbanFromDB($id)) {
+            http_response_code(400);
+            echo "Delete failed";
+        }
         die();
     }
 ?>
