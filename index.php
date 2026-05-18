@@ -7,7 +7,7 @@
     }
 
     if(isset($_GET['page'])) {
-        $currentPage = ($_GET['page'] <= 0) ? 1 : $_GET['page'];
+        $currentPage = max(1, (int) $_GET['page']);
     } else {
         $currentPage = 1;
     }
@@ -45,8 +45,8 @@
                 error_log("Error converting SteamID: " . $result['error']);
             }
         } else if ($method == "length" && isset($_GET['length'])) {
-                $lengthArray = $_GET['length'];
-                $lengthOperatorVal = intval($lengthArray[0]); // like greater or less or shit like this
+                $lengthArray = is_array($_GET['length']) ? $_GET['length'] : [];
+                $lengthOperatorVal = intval($lengthArray[0] ?? 1); // like greater or less or shit like this
                 $lengthOperator = "=";
 
                 if($lengthOperatorVal == 2) {$lengthOperator = ">";}
@@ -55,10 +55,11 @@
                 if($lengthOperatorVal == 5) {$lengthOperator = "<=";}
 
                 $length;
-                if(isset($_GET['custom']) && $lengthArray[1] == -2) {
+                $lengthValue = intval($lengthArray[1] ?? 0);
+                if(isset($_GET['custom']) && $lengthValue == -2) {
                     $length = intval($_GET['custom']); // in minutes
                 } else {
-                    $length = $lengthArray[1];
+                    $length = $lengthValue;
                     if($length != -1) {
                         $length = $length / 60; // we need to get length in minutes
                     }
@@ -112,7 +113,7 @@
 <!DOCTYPE html>
 <html lang="en">
     <?php
-        $query = $GLOBALS['DB']->query($sql . "ORDER BY time_stamp_start DESC LIMIT $resultsStart, $resultsPerPage");
+        $query = $GLOBALS['DB']->query($sql . " ORDER BY time_stamp_start DESC LIMIT $resultsStart, $resultsPerPage");
         $results1 = $query->fetch_all(MYSQLI_ASSOC);
         $resultsRealCount = $query->num_rows;
         $query->free();
