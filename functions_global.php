@@ -241,6 +241,7 @@
 
             echo "<script>showKbanWindowInfo(3, \"$playerName\", \"$playerSteamID\", \"$reason\", \"$length minutes\", $id);</script>";
             //echo "<script>window.location.replace('index.php?all');</script>";
+            return true;
         }
 
         public function formatLength($seconds) {
