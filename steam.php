@@ -2,6 +2,15 @@
 
 class Steam
 {
+	private static function assertSixtyFourBit()
+	{
+		if (PHP_INT_SIZE !== 8) {
+			throw new RuntimeException(
+				"Steam ID conversion requires a 64-bit PHP build; detected PHP_INT_SIZE=" . PHP_INT_SIZE
+			);
+		}
+	}
+
 	private static function resolveInputID($steamid)
 	{
 		$steamid = (string) $steamid;
@@ -72,6 +81,7 @@ class Steam
 	public static function SteamID_To_SteamID64($steamid32)
 	{
 		$steamid32 = (string) $steamid32;
+		self::assertSixtyFourBit();
 
 		if (preg_match('/^STEAM_[01]:([01]):(\d+)$/', $steamid32, $res)) {
 			$steamID64 = 76561197960265728 + ((int) $res[2] * 2) + (int) $res[1];
@@ -84,6 +94,7 @@ class Steam
 	public static function SteamID64_To_SteamID($steamid64)
 	{
 		$steamid64 = (string) $steamid64;
+		self::assertSixtyFourBit();
 		$pattern = "/^(7656119)([0-9]{10})$/";
 		if (preg_match($pattern, $steamid64, $match)) {
 			$const1 = 7960265728;
@@ -105,12 +116,15 @@ class Steam
 	{
 		$steamid64 = (string) $steamid64;
 		$attribute = (string) $attribute;
+		$previousLibxml = libxml_use_internal_errors(true);
 
 		if (preg_match('/^\d+$/', $steamid64)) {
-			$xml = simplexml_load_file("https://steamcommunity.com/profiles/".$steamid64."?xml=1");
+			$xml = @simplexml_load_file("https://steamcommunity.com/profiles/".$steamid64."?xml=1");
 		} else {
-			$xml = simplexml_load_file("https://steamcommunity.com/id/".$steamid64."?xml=1");
+			$xml = @simplexml_load_file("https://steamcommunity.com/id/".$steamid64."?xml=1");
 		}
+		libxml_clear_errors();
+		libxml_use_internal_errors($previousLibxml);
 
 		if ($xml === false) {
 			return array();
