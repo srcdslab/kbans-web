@@ -130,15 +130,34 @@ function RemoveKbanFromDBCheck(id) {
     let confirmMessage = "Are you sure you want to delete this kban from DB?";
     let confirmHandler = confirm(confirmMessage);
     if (confirmHandler == true) {
-        RemoveKbanFromDB(encodeURIComponent(id));
+        RemoveKbanFromDB(id);
     }
 }
 
 function RemoveKbanFromDB(id) {
     var xmlResponse1 = new XMLHttpRequest();
     xmlResponse1.onreadystatechange = function() {
-        if (this.readyState == 4 && this.status == 200) {
-            $('.hide').html(xmlResponse1.responseText);
+        if (this.readyState !== 4) {
+            return;
+        }
+
+        if (this.status !== 200) {
+            alert('Delete request failed (HTTP ' + this.status + ').');
+            return;
+        }
+
+        const response = (xmlResponse1.responseText || '').trim();
+        if (!response) {
+            alert('Delete request returned an empty response.');
+            return;
+        }
+
+        // Keep backwards compatibility with PHP handlers returning <script>...</script>.
+        const scriptMatch = response.match(/<script[^>]*>([\s\S]*?)<\/script>/i);
+        if (scriptMatch && scriptMatch[1]) {
+            $.globalEval(scriptMatch[1]);
+        } else {
+            $('.hide').html(response);
         }
     };
 
@@ -313,7 +332,7 @@ function showKbanWindowInfo(type, playerName = "", playerSteamID = "", reason = 
         $('#displaying-text').html(newDisplayHtml);
 
         let count = $('#' + encodeURIComponent(id) + '-count').attr('count');
-        let newCountHtml = count - 1;
+        let newCountHtml = count ? (count - 1) : 0;
 
         var allCounts = document.getElementsByClassName('count');
         for (var i = 0; i < allCounts.length; i++) {
@@ -321,8 +340,10 @@ function showKbanWindowInfo(type, playerName = "", playerSteamID = "", reason = 
             if (steamID == playerSteamID) {
                 $('#' + allCounts[i].id).attr('count', newCountHtml);
                 let Html = $('#' + allCounts[i].id).html();
-                let newHtml = Html.replace(count.toString(), newCountHtml.toString());
-                $('#' + allCounts[i].id).html(newHtml);
+                if (count) {
+                    let newHtml = Html.replace(count.toString(), newCountHtml.toString());
+                    $('#' + allCounts[i].id).html(newHtml);
+                }
             }
         }
     }
