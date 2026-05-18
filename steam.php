@@ -4,14 +4,16 @@ class Steam
 {
 	private static function resolveInputID($steamid)
 	{
+		$steamid = (string) $steamid;
+
 		switch (true) {
-			case preg_match("/STEAM_[0|1]:[0:1]:\d*/", $steamid):
+			case preg_match("/^STEAM_[01]:[01]:\d+$/", $steamid):
 				return 'Steam2';
-			case preg_match("/\[U:1:\d*\]/", $steamid):
+			case preg_match("/^\[U:1:\d+\]$/", $steamid):
 				return 'Steam3';
-			case preg_match("/U:1:\d*/", $steamid):
+			case preg_match("/^U:1:\d+$/", $steamid):
 				return 'Steam3';
-			case preg_match("/\d{17}/", $steamid):
+			case preg_match("/^\d{17}$/", $steamid):
 				return 'Steam64';
 			default:
 				throw new Exception("Invalid SteamID input!");
@@ -42,6 +44,8 @@ class Steam
 
 	public static function SteamID_To_SteamID3($steamid32) 
 	{
+		$steamid32 = (string) $steamid32;
+
 		if (preg_match('/^STEAM_[01]\:[01]\:(.*)$/', $steamid32, $res)) {
 			$st = '[U:1:';
 			$st .= $res[1] * 2 + intval(substr($steamid32, 8, 1));
@@ -54,6 +58,8 @@ class Steam
 
 	public static function SteamID3_To_SteamID($steamid3)
 	{
+		$steamid3 = (string) $steamid3;
+
 		if (preg_match("/U:1:(\d+)/", $steamid3, $matches)) {
 			$steam3 = intval($matches[1]);
 			$A = $steam3 % 2;
@@ -65,10 +71,11 @@ class Steam
 
 	public static function SteamID_To_SteamID64($steamid32)
 	{
-		if (preg_match('/^STEAM_0\:1|0\:(.*)$/', $steamid32, $res)) {
-			list(, $m1, $m2) = explode(':', $steamid32, 3);
-			list($steam_cid, ) = explode('.', bcadd((((int)$m2 * 2) + $m1), '76561197960265728'), 2);
-			return $steam_cid;
+		$steamid32 = (string) $steamid32;
+
+		if (preg_match('/^STEAM_[01]:([01]):(\d+)$/', $steamid32, $res)) {
+			$steamID64 = 76561197960265728 + ((int) $res[2] * 2) + (int) $res[1];
+			return (string) $steamID64;
 		}
 
 		return false;
@@ -76,6 +83,7 @@ class Steam
 
 	public static function SteamID64_To_SteamID($steamid64)
 	{
+		$steamid64 = (string) $steamid64;
 		$pattern = "/^(7656119)([0-9]{10})$/";
 		if (preg_match($pattern, $steamid64, $match)) {
 			$const1 = 7960265728;
@@ -95,10 +103,17 @@ class Steam
 
 	public static function GetSteamProfile($steamid64, $attribute)
 	{
+		$steamid64 = (string) $steamid64;
+		$attribute = (string) $attribute;
+
 		if (preg_match('/^\d+$/', $steamid64)) {
 			$xml = simplexml_load_file("https://steamcommunity.com/profiles/".$steamid64."?xml=1");
 		} else {
 			$xml = simplexml_load_file("https://steamcommunity.com/id/".$steamid64."?xml=1");
+		}
+
+		if ($xml === false) {
+			return array();
 		}
 
 		$SteamProfileAttribute = array();
