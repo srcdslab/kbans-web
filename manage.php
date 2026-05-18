@@ -18,16 +18,24 @@
 
     if(isset($_GET['reban'])) {
         $reban = true;
-        $oldid = $_GET['oldid'];
+        $oldid = $_GET['oldid'] ?? 0;
         $kban = new Kban();
         $info = $kban->getKbanInfoFromID(intval($oldid));
+        if ($info === null) {
+            echo "<center><h2 style='color: cyan;'>Kban not found!</h2></center>";
+            die();
+        }
     }
 
     if(isset($_GET['edit'])) {
         $edit = true;
-        $oldid = $_GET['oldid'];
+        $oldid = $_GET['oldid'] ?? 0;
         $kban = new Kban();
         $info = $kban->getKbanInfoFromID(intval($oldid));
+        if ($info === null) {
+            echo "<center><h2 style='color: cyan;'>Kban not found!</h2></center>";
+            die();
+        }
 
         $time_stamp_end = $info['time_stamp_end'];
         if($time_stamp_end >= 1 && time() > $time_stamp_end) {

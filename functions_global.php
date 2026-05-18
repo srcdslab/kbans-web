@@ -2,6 +2,7 @@
     include_once('steam.php');
     class Utility {
         public static function sanitizeInput($input) {
+            $input = (string) ($input ?? '');
             $replacements = array("'", '"', "\\", ";", "`", "--", "#", "=", ">", "<", "&", "%", "|", "^", "~", "(", ")");
             return str_replace($replacements, "", $input);
         }
@@ -27,9 +28,16 @@
 
         // Fetch the result from the query
         $row = $queryResult->fetch_assoc();
+        if ($row === null) {
+            return false;
+        }
         $sbppaid = $row['aid'];
 
         // Compare the cookie 'aid' with the result from the query
+        if (!$bInitialVerification && !isset($_COOKIE['aid'])) {
+            return false;
+        }
+
         if (!$bInitialVerification && $sbppaid != $_COOKIE['aid']) {
             return false;
         }
@@ -90,6 +98,7 @@
         }
 
         public function GetAdminNameFromSteamID($steamID) {
+            $steamID = (string) ($steamID ?? '');
             if (!str_contains($steamID, "STEAM")) {
                 return "CONSOLE";
             }
@@ -145,6 +154,9 @@
 
             $kban = new Kban();
             $resultsB = $kban->getKbanInfoFromID($id);
+            if ($resultsB === null) {
+                return false;
+            }
             $length = $resultsB['length'];
 
             $time_removed = time();
@@ -158,6 +170,9 @@
             $stmt->close();
 
             $results = $this->getKbanInfoFromID($id);
+            if ($results === null) {
+                return false;
+            }
             $playerName = $results['client_name'];
             $playerSteamID = $results['client_steamid'];
             $message = "Kban Removed (was $length minutes. Reason: $reason)";
@@ -188,6 +203,9 @@
             }
 
             $resultsC = $this->getKbanInfoFromID($id);
+            if ($resultsC === null) {
+                return false;
+            }
             $playerName = $resultsC['client_name'];
             $playerSteamID = $resultsC['client_steamid'];
             $length = $resultsC['length'];
@@ -223,6 +241,7 @@
 
             echo "<script>showKbanWindowInfo(3, \"$playerName\", \"$playerSteamID\", \"$reason\", \"$length minutes\", $id);</script>";
             //echo "<script>window.location.replace('index.php?all');</script>";
+            return true;
         }
 
         public function formatLength($seconds) {
@@ -401,6 +420,9 @@
             $lengthInMinutes = ($length / 60);
  
             $info = $this->getKbanInfoFromID($id);
+            if ($info === null) {
+                return false;
+            }
 
             $time_stamp_end = ($info['time_stamp_start'] + $length);
             if ($length <= -1) {
@@ -520,6 +542,8 @@
             session_start();
         }
 
+        $token = (string) ($token ?? '');
+
         if (empty($_SESSION['csrf_token']) || empty($token)) {
             return false;
         }
@@ -538,8 +562,12 @@
         
         if ($id != 0) {
             $result2 = $kban->getKbanInfoFromID($id);
-        } else {
+        } else if ($result2 !== null) {
             $id = $result2['id'];
+        }
+
+        if ($result2 === null) {
+            return;
         }
 
         $clientName         = $result2['client_name'];

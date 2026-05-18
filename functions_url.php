@@ -3,6 +3,7 @@
     include_once('functions_global.php');
 
     function sanitizeString($input) {
+        $input = (string) ($input ?? '');
         // Replace problematic characters with an empty string
         $replacements = array("'", '"', "\\", ";", "`", "--", "#", "=", ">", "<", "&", "%", "|", "^", "~", "(", ")");
         $sanitized = str_replace($replacements, "", $input);
@@ -10,7 +11,7 @@
     }
 
     if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['id']) && !isset($_GET['reban']) && !isset($_GET['edit'])) {
-        $id = filter_input(INPUT_GET, 'id', FILTER_SANITIZE_NUMBER_INT);
+        $id = (int) filter_input(INPUT_GET, 'id', FILTER_SANITIZE_NUMBER_INT);
         showKbanInfo($id);
     }
 
@@ -27,11 +28,11 @@
         $admin = new Admin();
         $admin->UpdateAdminInfo($_COOKIE['steamID']);
 
-        $id = filter_input(INPUT_POST, 'oldid', FILTER_SANITIZE_NUMBER_INT);
+        $id = (int) filter_input(INPUT_POST, 'oldid', FILTER_SANITIZE_NUMBER_INT);
         
         $kban = new Kban();
         $info = $kban->getKbanInfoFromID($id);
-        if (!IsAdminLoggedIn() || (!$admin->DoesHaveFullAccess() && $info['admin_steamid'] != $admin->adminSteamID)) {
+        if ($info === null || !IsAdminLoggedIn() || (!$admin->DoesHaveFullAccess() && $info['admin_steamid'] != $admin->adminSteamID)) {
             die();
         }
         
@@ -60,7 +61,7 @@
 
         $playerName = sanitizeString(filter_input(INPUT_POST, 'playerName', FILTER_UNSAFE_RAW));
         $playerSteamID = sanitizeString(filter_input(INPUT_POST, 'playerSteamID', FILTER_UNSAFE_RAW));
-        $length = filter_input(INPUT_POST, 'length', FILTER_SANITIZE_NUMBER_INT);
+        $length = (int) filter_input(INPUT_POST, 'length', FILTER_SANITIZE_NUMBER_INT);
         $reason = sanitizeString(filter_input(INPUT_POST, 'reason', FILTER_UNSAFE_RAW));
 
         $icon = "<i class='fa-solid fa-xmark'></i>&nbsp";
@@ -113,7 +114,7 @@
             die();
         }
 
-        $id = filter_input(INPUT_POST, 'id', FILTER_SANITIZE_NUMBER_INT);
+        $id = (int) filter_input(INPUT_POST, 'id', FILTER_SANITIZE_NUMBER_INT);
         $playerName = sanitizeString(filter_input(INPUT_POST, 'playerName', FILTER_UNSAFE_RAW));
         $playerSteamID = sanitizeString(filter_input(INPUT_POST, 'playerSteamID', FILTER_UNSAFE_RAW));
         $length = filter_input(INPUT_POST, 'length', FILTER_SANITIZE_NUMBER_INT);
@@ -165,6 +166,7 @@
         if ($length === null) {
             $length = 0;
         }
+        $length = (int) $length;
         
         if ($length < 0) {
             $length = 30;
@@ -174,7 +176,7 @@
 
         $info = $kban->getKbanInfoFromID($id);
 
-        if (!IsAdminLoggedIn() || (!$admin->DoesHaveFullAccess() && $info['admin_steamid'] != $admin->adminSteamID)) {
+        if ($info === null || !IsAdminLoggedIn() || (!$admin->DoesHaveFullAccess() && $info['admin_steamid'] != $admin->adminSteamID)) {
             die();
         }
 
@@ -212,9 +214,12 @@
             die();
         }
 
-        $id = filter_input(INPUT_POST, 'deleteid', FILTER_SANITIZE_NUMBER_INT);
+        $id = (int) filter_input(INPUT_POST, 'deleteid', FILTER_SANITIZE_NUMBER_INT);
         $kban = new Kban();
-        $kban->RemoveKbanFromDB($id);
+        if (!$kban->RemoveKbanFromDB($id)) {
+            http_response_code(400);
+            echo "Delete failed";
+        }
         die();
     }
 ?>

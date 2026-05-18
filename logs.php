@@ -24,7 +24,7 @@
     }
 
     if(isset($_GET['page'])) {
-        $currentPage = ($_GET['page'] <= 0) ? 1 : $_GET['page'];
+        $currentPage = max(1, (int) $_GET['page']);
     } else {
         $currentPage = 1;
     }
@@ -83,7 +83,7 @@
 <!DOCTYPE html>
 <html>
     <?php
-    $query = $GLOBALS['DB']->query($sql . "ORDER BY time_stamp DESC LIMIT $resultsStart, $resultsPerPage");
+    $query = $GLOBALS['DB']->query($sql . " ORDER BY time_stamp DESC LIMIT $resultsStart, $resultsPerPage");
     $results1 = $query->fetch_all(MYSQLI_ASSOC);
     $resultsRealCount = $query->num_rows;
     $query->free();
