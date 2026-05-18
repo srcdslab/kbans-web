@@ -12,6 +12,15 @@ function showKbanInfo(button) {
     }
 }
 
+function getCsrfToken() {
+    if (window.CSRF_TOKEN) {
+        return window.CSRF_TOKEN;
+    }
+
+    const meta = document.querySelector('meta[name="csrf-token"]');
+    return meta ? meta.getAttribute('content') : '';
+}
+
 function GoTop() {
     if (document.documentElement.scrollTop > 450 || document.body.scrollTop > 450) {
         document.body.scrollTop = 200;
@@ -42,8 +51,13 @@ function UnBanByID(id, reason) {
         }
     };
 
-    xmlResponse1.open("GET", "functions_url.php?oldid=" + encodeURIComponent(id) + '&reason=' + encodeURIComponent(reason), true);
-    xmlResponse1.send();
+    xmlResponse1.open("POST", "functions_url.php", true);
+    xmlResponse1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+    xmlResponse1.send(
+        "oldid=" + encodeURIComponent(id) +
+        "&reason=" + encodeURIComponent(reason) +
+        "&csrf_token=" + encodeURIComponent(getCsrfToken())
+    );
 
     var xmlResponse2 = new XMLHttpRequest();
     xmlResponse2.onreadystatechange = function() {
@@ -79,9 +93,16 @@ function addNewKban(playerName, playerSteamID, length, reason) {
         }
     };
 
-    let url = "functions_url.php?add=1&playerName=" + encodeURIComponent(playerName) + '&playerSteamID=' + encodeURIComponent(playerSteamID) + '&length=' + encodeURIComponent(length) + '&reason=' + encodeURIComponent(reason);
-    xmlResponse.open("GET", url, true);
-    xmlResponse.send();
+    xmlResponse.open("POST", "functions_url.php", true);
+    xmlResponse.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+    xmlResponse.send(
+        "add=1" +
+        "&playerName=" + encodeURIComponent(playerName) +
+        "&playerSteamID=" + encodeURIComponent(playerSteamID) +
+        "&length=" + encodeURIComponent(length) +
+        "&reason=" + encodeURIComponent(reason) +
+        "&csrf_token=" + encodeURIComponent(getCsrfToken())
+    );
 }
 
 function EditKban(id, playerName, playerSteamID, length, reason) {
@@ -92,9 +113,17 @@ function EditKban(id, playerName, playerSteamID, length, reason) {
         }
     };
 
-    let url = "functions_url.php?edit=1&id=" + encodeURIComponent(id) + '&playerName=' + encodeURIComponent(playerName) + '&playerSteamID=' + encodeURIComponent(playerSteamID) + '&length=' + encodeURIComponent(length) + '&reason=' + encodeURIComponent(reason);
-    xmlResponse1.open("GET", url, true);
-    xmlResponse1.send();
+    xmlResponse1.open("POST", "functions_url.php", true);
+    xmlResponse1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+    xmlResponse1.send(
+        "edit=1" +
+        "&id=" + encodeURIComponent(id) +
+        "&playerName=" + encodeURIComponent(playerName) +
+        "&playerSteamID=" + encodeURIComponent(playerSteamID) +
+        "&length=" + encodeURIComponent(length) +
+        "&reason=" + encodeURIComponent(reason) +
+        "&csrf_token=" + encodeURIComponent(getCsrfToken())
+    );
 }
 
 function RemoveKbanFromDBCheck(id) {
@@ -113,8 +142,13 @@ function RemoveKbanFromDB(id) {
         }
     };
 
-    xmlResponse1.open("GET", "functions_url.php?delete=1&deleteid=" + encodeURIComponent(id), true);
-    xmlResponse1.send();
+    xmlResponse1.open("POST", "functions_url.php", true);
+    xmlResponse1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+    xmlResponse1.send(
+        "delete=1" +
+        "&deleteid=" + encodeURIComponent(id) +
+        "&csrf_token=" + encodeURIComponent(getCsrfToken())
+    );
 }
 
 function setActive(num) {

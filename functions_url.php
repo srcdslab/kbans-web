@@ -9,12 +9,17 @@
         return htmlspecialchars($sanitized, ENT_QUOTES, 'UTF-8'); // Escape HTML entities
     }
 
-    if (isset($_GET['id']) && !isset($_GET['reban']) && !isset($_GET['edit'])) {
+    if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['id']) && !isset($_GET['reban']) && !isset($_GET['edit'])) {
         $id = filter_input(INPUT_GET, 'id', FILTER_SANITIZE_NUMBER_INT);
         showKbanInfo($id);
     }
 
-    if (isset($_GET['oldid']) && !isset($_GET['reban']) && !isset($_GET['edit'])) {
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['oldid']) && !isset($_POST['reban']) && !isset($_POST['edit'])) {
+        if (!ValidateCsrfToken(filter_input(INPUT_POST, 'csrf_token', FILTER_UNSAFE_RAW))) {
+            http_response_code(403);
+            die();
+        }
+
         if (!isset($_COOKIE['steamID'])) {
             die();
         }
@@ -22,7 +27,7 @@
         $admin = new Admin();
         $admin->UpdateAdminInfo($_COOKIE['steamID']);
 
-        $id = filter_input(INPUT_GET, 'oldid', FILTER_SANITIZE_NUMBER_INT);
+        $id = filter_input(INPUT_POST, 'oldid', FILTER_SANITIZE_NUMBER_INT);
         
         $kban = new Kban();
         $info = $kban->getKbanInfoFromID($id);
@@ -30,7 +35,7 @@
             die();
         }
         
-        $reason = sanitizeString(filter_input(INPUT_GET, 'reason', FILTER_SANITIZE_STRING));
+        $reason = sanitizeString(filter_input(INPUT_POST, 'reason', FILTER_UNSAFE_RAW));
         
         if (!$kban->UnbanByID($id, $reason)) {
             die();
@@ -43,15 +48,20 @@
         GetRowInfo($id);
     }
 
-    if (isset($_GET['add']) && isset($_GET['playerName'])) {
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add']) && isset($_POST['playerName'])) {
+        if (!ValidateCsrfToken(filter_input(INPUT_POST, 'csrf_token', FILTER_UNSAFE_RAW))) {
+            http_response_code(403);
+            die();
+        }
+
         if (!IsAdminLoggedIn()) {
             die();
         }
 
-        $playerName = sanitizeString(filter_input(INPUT_GET, 'playerName', FILTER_SANITIZE_STRING));
-        $playerSteamID = sanitizeString(filter_input(INPUT_GET, 'playerSteamID', FILTER_SANITIZE_STRING));
-        $length = filter_input(INPUT_GET, 'length', FILTER_SANITIZE_NUMBER_INT);
-        $reason = sanitizeString(filter_input(INPUT_GET, 'reason', FILTER_SANITIZE_STRING));
+        $playerName = sanitizeString(filter_input(INPUT_POST, 'playerName', FILTER_UNSAFE_RAW));
+        $playerSteamID = sanitizeString(filter_input(INPUT_POST, 'playerSteamID', FILTER_UNSAFE_RAW));
+        $length = filter_input(INPUT_POST, 'length', FILTER_SANITIZE_NUMBER_INT);
+        $reason = sanitizeString(filter_input(INPUT_POST, 'reason', FILTER_UNSAFE_RAW));
 
         $icon = "<i class='fa-solid fa-xmark'></i>&nbsp";
         if (empty($playerName)) {
@@ -93,16 +103,21 @@
         $kban->addNewKban($playerName, $playerSteamID, $length, $reason);
     }
 
-    if (isset($_GET['edit']) && isset($_GET['playerName'])) {
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit']) && isset($_POST['playerName'])) {
+        if (!ValidateCsrfToken(filter_input(INPUT_POST, 'csrf_token', FILTER_UNSAFE_RAW))) {
+            http_response_code(403);
+            die();
+        }
+
         if (!isset($_COOKIE['steamID'])) {
             die();
         }
 
-        $id = filter_input(INPUT_GET, 'id', FILTER_SANITIZE_NUMBER_INT);
-        $playerName = sanitizeString(filter_input(INPUT_GET, 'playerName', FILTER_SANITIZE_STRING));
-        $playerSteamID = sanitizeString(filter_input(INPUT_GET, 'playerSteamID', FILTER_SANITIZE_STRING));
-        $length = filter_input(INPUT_GET, 'length', FILTER_SANITIZE_NUMBER_INT);
-        $reason = sanitizeString(filter_input(INPUT_GET, 'reason', FILTER_SANITIZE_STRING));
+        $id = filter_input(INPUT_POST, 'id', FILTER_SANITIZE_NUMBER_INT);
+        $playerName = sanitizeString(filter_input(INPUT_POST, 'playerName', FILTER_UNSAFE_RAW));
+        $playerSteamID = sanitizeString(filter_input(INPUT_POST, 'playerSteamID', FILTER_UNSAFE_RAW));
+        $length = filter_input(INPUT_POST, 'length', FILTER_SANITIZE_NUMBER_INT);
+        $reason = sanitizeString(filter_input(INPUT_POST, 'reason', FILTER_UNSAFE_RAW));
 
         $icon = "<i class='fa-solid fa-xmark'></i>&nbsp";
         if (empty($playerName)) {
@@ -181,7 +196,12 @@
         $kban->EditKban($id, $playerName, $playerSteamID, $length, $reason);
     }
 
-    if (isset($_GET['delete'])) {
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete'])) {
+        if (!ValidateCsrfToken(filter_input(INPUT_POST, 'csrf_token', FILTER_UNSAFE_RAW))) {
+            http_response_code(403);
+            die();
+        }
+
         if (!isset($_COOKIE['steamID'])) {
             die();
         }
@@ -192,7 +212,7 @@
             die();
         }
 
-        $id = filter_input(INPUT_GET, 'deleteid', FILTER_SANITIZE_NUMBER_INT);
+        $id = filter_input(INPUT_POST, 'deleteid', FILTER_SANITIZE_NUMBER_INT);
         $kban = new Kban();
         $kban->RemoveKbanFromDB($id);
         die();
