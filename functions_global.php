@@ -635,6 +635,33 @@
         return $methods[$method-1] ?? $methods[0];
     }
 
+    /* A positive page number from the query string, or 1.
+       `?page=abc`, `?page=0`, `?page[]=1` and `?page=99999999999999999999`
+       (which overflows and stops being a valid int) all fall back to 1
+       instead of flowing into the LIMIT offset as junk. */
+    function currentPageFromRequest(): int {
+        return (int) filter_input(INPUT_GET, 'page', FILTER_VALIDATE_INT, [
+            'options' => ['min_range' => 1, 'default' => 1],
+        ]);
+    }
+
+    /* The row offset for a page, computed only after the page number has been
+       clamped to the real page count. A `?page=` past the end then lands on
+       the last page instead of an out-of-range empty one. */
+    function resultsOffset(int $currentPage, int $totalPages, int $perPage): int {
+        $page = ($totalPages > 0) ? min($currentPage, $totalPages) : 1;
+        return ($page - 1) * $perPage;
+    }
+
+    /* real_escape_string() does not neutralise the LIKE metacharacters, so a
+       search for `a_b` or `50%` was matched as a pattern rather than as text.
+       The backslashes are doubled because MySQL parses escapes in the LIKE
+       pattern as well as in the surrounding string literal. Apply this before
+       real_escape_string(). */
+    function escapeLikeOperand(string $value): string {
+        return str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $value);
+    }
+
     function GetRowInfo($id, $result2 = null) {
         $admin = new Admin();
         $kban = new Kban();
