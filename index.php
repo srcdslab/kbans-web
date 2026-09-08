@@ -106,7 +106,7 @@
         $icon = "<i class='fa-solid fa-hourglass-end'></i>";
     }
 
-    echo "<script>setActive($pageActiveNum); setModalSearch(\"$pageType\");</script>";
+    echo "<script>setActive(" . (int) $pageActiveNum . "); setModalSearch(" . js($pageType) . ");</script>";
 
 ?>
 
@@ -122,6 +122,11 @@
         if(str_contains($url, '&page')) {
             $url = substr($url, 0, strpos($url, '&page'));
         }
+
+        /* REQUEST_URI is request data: it is echoed into href='' and
+           data-href='' below, and a browser sends an apostrophe in a query
+           string literally. */
+        $url = e($url);
     ?>
         <div class="container">
             <div class="container-header">
@@ -138,13 +143,13 @@
             </div>
             <div class="container-box1">
                 <div class="order1">
-                <p id="totalText" results=<?php echo "$resultsCount";?>>&nbsp Total Kbans: <?php echo $resultsCount; ?></p>
+                <p id="totalText" results="<?php echo (int) $resultsCount; ?>">&nbsp Total Kbans: <?php echo (int) $resultsCount; ?></p>
                 </div>
                 <div class="order2">
                     <?php
                         $resultsEnd = $resultsStart + $resultsRealCount;
                     ?>
-                    <p id="displaying-text" results=<?php echo "$resultsStart"; ?> totalresults=<?php echo "$resultsEnd" ?>>displaying <?php echo "$resultsStart - $resultsEnd"; ?> of <?php echo $resultsCount; ?> results |
+                    <p id="displaying-text" results="<?php echo (int) $resultsStart; ?>" totalresults="<?php echo (int) $resultsEnd; ?>">displaying <?php echo (int) $resultsStart . " - " . (int) $resultsEnd; ?> of <?php echo (int) $resultsCount; ?> results |
                     <?php
                         $nextPage = $currentPage + 1;
                         $previousPage = $currentPage - 1;
@@ -255,32 +260,32 @@
                                             $dateA->setTimestamp($time_stamp_start);
                                             $dateB = $dateA->format(DATE_TIME_FORMAT);
 
-                                            echo "<tr class='$class' id-data='$id' id='diva-tr-$id'>";
+                                            echo "<tr class='" . e($class) . "' id-data='" . (int) $id . "' id='diva-tr-" . (int) $id . "'>";
                                             if ($map != "Web Ban" && $map != "From Web") {
                                                 echo "<td style='background-color: transparent; align-items: center;'><img src='./images/games/csource.png' border='0' align='absmiddle' alt='css'></td>";
                                             } else {
                                                 echo "<td style='background-color: transparent; align-items: center;'><img src='./images/games/web.png' border='0' align='absmiddle' alt='Web Ban'></td>";
                                             }
-                                            echo "<td>$dateB</td>";
-                                            echo "<td>$clientName</td>";
+                                            echo "<td>" . e($dateB) . "</td>";
+                                            echo "<td>" . e($clientName) . "</td>";
                                             if($count >= 2) {
                                                 if ($count == $realcount) {
-                                                    echo "<td style='color: var(--theme-text); padding: 0;' class='count' id='$id-count' count='$count' steamid='$clientSteamID'><i class='fa-solid fa-ban'></i> <b>$realcount</b></td>";
+                                                    echo "<td style='color: var(--theme-text); padding: 0;' class='count' id='" . (int) $id . "-count' count='" . (int) $count . "' steamid='" . e($clientSteamID) . "'><i class='fa-solid fa-ban'></i> <b>" . (int) $realcount . "</b></td>";
                                                 } else {
-                                                    echo "<td style='color: var(--theme-text); padding: 0;' class='count' id='$id-count' count='$count' steamid='$clientSteamID'><i class='fa-solid fa-ban'></i> <b>$realcount</b> ($count)</td>";
+                                                    echo "<td style='color: var(--theme-text); padding: 0;' class='count' id='" . (int) $id . "-count' count='" . (int) $count . "' steamid='" . e($clientSteamID) . "'><i class='fa-solid fa-ban'></i> <b>" . (int) $realcount . "</b> (" . (int) $count . ")</td>";
                                                 }
                                             } else {
                                                 echo "<td></td>";
                                             }
-                                            echo "<td>$reason</td>";
-                                            echo "<td>$adminName</td>";
-                                            echo "<td class='row-length' id='length-$id'>$length</td>";
+                                            echo "<td>" . e($reason) . "</td>";
+                                            echo "<td>" . e($adminName) . "</td>";
+                                            echo "<td class='row-length' id='length-" . (int) $id . "'>" . e($length) . "</td>";
 
                                             echo "</tr>";
 
-                                            echo "<tr id='diva-$id-tr' style='display: none; width: 100%; height: 100%;'>";
+                                            echo "<tr id='diva-" . (int) $id . "-tr' style='display: none; width: 100%; height: 100%;'>";
                                             echo "<td colspan='15'>";
-                                            echo "<div id='diva-$id' class='row-block' is_slided='0'>";
+                                            echo "<div id='diva-" . (int) $id . "' class='row-block' is_slided='0'>";
                                             GetRowInfo(0, $result1);
                                             echo "</div>";
                                             echo "</td>";

@@ -92,6 +92,9 @@
     if(str_contains($url, '&page')) {
         $url = substr($url, 0, strpos($url, '&page'));
     }
+
+    /* REQUEST_URI is request data and is echoed into href='' / data-href=''. */
+    $url = e($url);
     ?>
     <div class="container">
         <div class="container-header">
@@ -102,7 +105,7 @@
 <i class="fas fa-angle-right"></i> <a href="logs.php?<?php echo ($isSrv) ? "srv" : "web";?>"><?php echo ($isSrv) ? "Server" : "Web";?> Logs</a>
 </div>
         <div class="container-search">
-            <div class="search-button search-modal-btn-open" id="search-button" data-page=<?php echo "\"$pageType\""; ?>>
+            <div class="search-button search-modal-btn-open" id="search-button" data-page="<?php echo e($pageType); ?>">
                 <p><strong>Advanced Search (Click)</strong></p>
             </div>
         </div>
@@ -173,10 +176,10 @@
                                     $dateFormated = $date->format(DATE_TIME_FORMAT);
 
                                     echo "<tr class='row-expired'>";
-                                    echo "<td>$dateFormated</td>";
-                                    echo "<td>$clientName ($clientSteamID)</a></td>";
-                                    echo "<td>$adminName</td>";
-                                    echo "<td>$message</td>";
+                                    echo "<td>" . e($dateFormated) . "</td>";
+                                    echo "<td>" . e($clientName) . " (" . e($clientSteamID) . ")</td>";
+                                    echo "<td>" . e($adminName) . "</td>";
+                                    echo "<td>" . e($message) . "</td>";
                                     echo "</tr>";
                                 }
                             ?>

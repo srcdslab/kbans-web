@@ -104,6 +104,28 @@
         session_destroy();
     }
 
+    /* HTML-escape a value on its way into the page. Everything the panel
+       renders out of the database goes through this. The KnockbackRestrict
+       plugin writes `client_name`, `reason`, `admin_name` and `map` straight
+       from the game server, so a player nickname is fully attacker-controlled
+       and never passes through Utility::sanitizeInput(). Output escaping is
+       the control here, not input stripping. */
+    function e($value): string {
+        return htmlspecialchars((string) ($value ?? ''), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+    }
+
+    /* A value crossing into JavaScript. json_encode() produces the complete
+       literal, quotes included, and the JSON_HEX_* flags keep it inert inside
+       an inline <script>. Wrap the result in e() as well when it sits inside
+       an on* attribute, because the attribute is parsed as HTML first. */
+    function js($value): string {
+        return json_encode(
+            $value,
+            JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT
+                | JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE
+        );
+    }
+
     class Utility {
         public static function sanitizeInput($input) {
             $input = (string) ($input ?? '');
@@ -218,7 +240,9 @@
             $row = $stmt->get_result()->fetch_assoc();
             $stmt->close();
 
-            return self::$adminNameCache[$steamID] = ($row['user'] ?? "<i>Admin Deleted</i>");
+            /* Plain text, not markup: every render site escapes this value now,
+               so an <i> here would be shown to the user as literal tags. */
+            return self::$adminNameCache[$steamID] = ($row['user'] ?? "Admin Deleted");
     }
 
         public function DoesHaveFullAccess() {
@@ -291,8 +315,7 @@
             $stmt->execute();
             $stmt->close();
 
-            //echo "<script>showKbanWindowInfo(2, \"$playerName\", \"$playerSteamID\", \"$reason\", \"$length minutes\");</script>";
-            echo "<script>showKbanWindowInfo(2, \"$playerName\", \"$playerSteamID\", \"$reason\", \"$length minutes\", $id);</script>";
+            echo "<script>showKbanWindowInfo(2, " . js($playerName) . ", " . js($playerSteamID) . ", " . js($reason) . ", " . js("$length minutes") . ", " . (int) $id . ");</script>";
 
             return true;
         }
@@ -347,7 +370,7 @@
             $stmt->execute();
             $stmt->close();
 
-            echo "<script>showKbanWindowInfo(3, \"$playerName\", \"$playerSteamID\", \"$reason\", \"$length minutes\", $id);</script>";
+            echo "<script>showKbanWindowInfo(3, " . js($playerName) . ", " . js($playerSteamID) . ", " . js($reason) . ", " . js("$length minutes") . ", " . (int) $id . ");</script>";
             //echo "<script>window.location.replace('index.php?all');</script>";
             return true;
         }
@@ -525,7 +548,7 @@
             $stmt->execute();
             $stmt->close();
 
-            echo "<script>showKbanWindowInfo(0, \"$playerName\", \"$playerSteamID\", \"$reason\", \"$lengthInMinutes minutes\");</script>";
+            echo "<script>showKbanWindowInfo(0, " . js($playerName) . ", " . js($playerSteamID) . ", " . js($reason) . ", " . js("$lengthInMinutes minutes") . ");</script>";
             //echo "<script>window.location.replace('index.php?all');</script>";
         }
 
@@ -602,7 +625,7 @@
             $stmt->execute();
             $stmt->close();
 
-            echo "<script>showKbanWindowInfo(1, \"$playerName\", \"$playerSteamID\", \"$reason\", \"$lengthInMinutes minutes\");</script>";
+            echo "<script>showKbanWindowInfo(1, " . js($playerName) . ", " . js($playerSteamID) . ", " . js($reason) . ", " . js("$lengthInMinutes minutes") . ");</script>";
             //echo "<script>window.location.replace('index.php?all');</script>";
         }
 
@@ -747,15 +770,15 @@
          $searchMethod = 1;
         if (IsAdminLoggedIn()) {
             if ($clientSteamID == "NO STEAMID") {
-                $href = "ViewPlayerHistory(\"$clientIP\", 3)";
+                $href = e("ViewPlayerHistory(" . js($clientIP) . ", 3)");
                 $searchMethod = 3;
             } else {
-                $href = "ViewPlayerHistory(\"$clientSteamID\", 1);";
+                $href = e("ViewPlayerHistory(" . js($clientSteamID) . ", 1);");
                 $searchMethod = 1;
             }
         } else {
             if ($clientSteamID != "NO STEAMID") {
-                $href = "ViewPlayerHistory(\"$clientSteamID\", 1);";
+                $href = e("ViewPlayerHistory(" . js($clientSteamID) . ", 1);");
                 $searchMethod = 1;
             } else {
                 $searchMethod = 3;
@@ -772,21 +795,21 @@
             if (($time_stamp_end < 1 && $isRemoved == false && $isExpired == false) || ($time_stamp_end >= 1 && time() < $time_stamp_end && $isRemoved == false && $isExpired == false)) {
             
                 if ($admin->DoesHaveFullAccess() || $adminSteamID == $admin->adminSteamID) {
-                    $editFunction = "EditFromID(\"$id\")";
+                    $editFunction = e("EditFromID(" . js((string) $id) . ")");
                     echo "<button class='button button-primary' title='Edit' onclick='$editFunction'><i class='fa-regular fa-pen-to-square'></i>&nbspEdit Details</button>";
-                    $unbanFunction = "ConfirmUnban($id, \"$clientName\", \"$clientSteamID\");";
+                    $unbanFunction = e("ConfirmUnban(" . (int) $id . ", " . js($clientName) . ", " . js($clientSteamID) . ");");
                     echo "<button class='button button-important' title='Unban' onclick='$unbanFunction'><i class='fas fa-undo fa-lg'></i>&nbspUnban</button>";
                 }
             } else {
                 if ($clientSteamID != "NO STEAMID" && !$kban->IsSteamIDAlreadyBanned($clientSteamID)) {
-                    $reBanFunction = "RebanFromID(\"$id\");";
+                    $reBanFunction = e("RebanFromID(" . js((string) $id) . ");");
                     echo "<button class='button button-important' title='Reban' onclick='$reBanFunction'><i class='fas fa-redo fa-lg'></i>&nbspReban</button>";
                 }
             }
         }
 
         if ($admin->DoesHaveFullAccess()) {
-            $deleteFunction = "RemoveKbanFromDBCheck($id);";
+            $deleteFunction = "RemoveKbanFromDBCheck(" . (int) $id . ");";
             echo "<button class='button button-important' title='Delete' onclick='$deleteFunction'><i class='fa-solid fa-trash'></i>&nbspDelete KBan</button>";
         }
 
@@ -808,7 +831,7 @@
 
         echo "<li>";
         echo "<span><i class='fas fa-user'></i> Player</span>";
-        echo "<span>$clientName</span>";
+        echo "<span>" . e($clientName) . "</span>";
         echo "</li>";
 
         $steam = new Steam();
@@ -816,58 +839,58 @@
         $clientSteamID64 = $steam->SteamID_To_SteamID64($clientSteamID);
         echo "<li>";
         echo "<span><i class='fab fa-steam-symbol'></i> Steam ID</span>";
-        echo "<span>$clientSteamID</span>";
+        echo "<span>" . e($clientSteamID) . "</span>";
         echo "</li>";
 
         echo "<li>";
         echo "<span><i class='fab fa-steam-symbol'></i> Steam3 ID</span>";
-        echo "<span><a href='https://steamcommunity.com/profiles/$clientSteamID64' target='_blank'>$clientSteamID3</a></span>";
+        echo "<span><a href='https://steamcommunity.com/profiles/" . e($clientSteamID64) . "' target='_blank' rel='noopener'>" . e($clientSteamID3) . "</a></span>";
         echo "</li>";
 
         echo "<li>";
         echo "<span><i class='fab fa-steam-symbol'></i> Steam Community</span>";
-        echo "<span><a href='https://steamcommunity.com/profiles/$clientSteamID64' target='_blank'>$clientSteamID64</a></span>";
+        echo "<span><a href='https://steamcommunity.com/profiles/" . e($clientSteamID64) . "' target='_blank' rel='noopener'>" . e($clientSteamID64) . "</a></span>";
         echo "</li>";
 
         if (IsAdminLoggedIn() && $admin->DoesHaveFullAccess()) {
             echo "<li>";
             echo "<span><i class='fas fa-network-wired'></i> IP address</span>";
             if ($clientIP == "Unknown" || $clientIP == "unknown") {
-                echo "<span>$clientIP</span>";
+                echo "<span>" . e($clientIP) . "</span>";
             } else {
-                echo "<span><a href='https://www.infobyip.com/ip-$clientIP.html' target='_blank'>$clientIP</a></span>";
+                echo "<span><a href='https://www.infobyip.com/ip-" . e($clientIP) . ".html' target='_blank' rel='noopener'>" . e($clientIP) . "</a></span>";
             }
             echo "</li>";
         }
 
         echo "<li>";
         echo "<span><i class='fas fa-play'></i> Invoked on</span>";
-        echo "<span>$startDate</span>";
+        echo "<span>" . e($startDate) . "</span>";
         echo "</li>";
 
         echo "<li>";
         echo "<span><i class='fas fa-hourglass-half'></i> KBan Duration</span>";
-        echo "<span>$length</span>";
+        echo "<span>" . e($length) . "</span>";
         echo "</li>";
 
         echo "<li>";
         echo "<span><i class='fas fa-clock'></i> Expires on</span>";
-        echo "<span>$endDate</span>";
+        echo "<span>" . e($endDate) . "</span>";
         echo "</li>";
 
         echo "<li>";
         echo "<span><i class='fas fa-question'></i> Reason</span>";
-        echo "<span>$reason</span>";
+        echo "<span>" . e($reason) . "</span>";
         echo "</li>";
 
         echo "<li>";
         echo "<span><i class='fas fa-ban'></i> Banned by Admin</span>";
-        echo "<span>$adminName</span>";
+        echo "<span>" . e($adminName) . "</span>";
         echo "</li>";
 
         echo "<li>";
         echo "<span><i class='fa-solid fa-circle-exclamation'></i> KBan Status</span>";
-        echo "<span>$status</span>";
+        echo "<span>" . e($status) . "</span>";
         echo "</li>";
 
         if ($isRemoved) {
@@ -876,17 +899,17 @@
 
             echo "<li>";
             echo "<span><i class='fas fa-play'></i> Unbanned on</span>";
-            echo "<span>$removedDate</span>";
+            echo "<span>" . e($removedDate) . "</span>";
             echo "</li>";
 
             echo "<li>";
             echo "<span><i class='fas fa-ban'></i> Unbanned By Admin</span>";
-            echo "<span>$adminNameRemoved</span>";
+            echo "<span>" . e($adminNameRemoved) . "</span>";
             echo "</li>";
 
             echo "<li>";
             echo "<span><i class='fas fa-question'></i> Unban Reason</span>";
-            echo "<span>$reason_removed</span>";
+            echo "<span>" . e($reason_removed) . "</span>";
             echo "</li>";
         }
 
@@ -894,9 +917,9 @@
         echo "<span><i class='fa-solid fa-gamepad'></i> Map</span>";
         if ($map != "Web Ban" && $map != "From Web") {
             $fastdl = $GLOBALS['SERVER_FASTDL'];
-            echo "<span><a href='$fastdl/maps/$map.bsp.bz2'>$map</a></span>";
+            echo "<span><a href='" . e($fastdl) . "/maps/" . e($map) . ".bsp.bz2'>" . e($map) . "</a></span>";
         } else {
-            echo "<span>$map</span>";
+            echo "<span>" . e($map) . "</span>";
         }
         echo "</li>";
 
