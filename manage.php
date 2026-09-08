@@ -103,7 +103,7 @@
                     <?php if(empty($val)) { ?>
                         <input id="playerSteamID" type="text" class="input kban-input">
                     <?php } else { ?>
-                        <input id="playerSteamID" type="text" class="input kban-input" value=<?php echo "\"$val\""; ?> title="Why the f*ck do you want to edit the SteamID? Just add a new Kban nigger" disabled>
+                        <input id="playerSteamID" type="text" class="input kban-input" value=<?php echo "\"$val\""; ?> title="The SteamID of an existing kban cannot be changed. Unban this kban and add a new one against the correct SteamID instead." disabled>
                     <?php } ?>
                 </div>
 
