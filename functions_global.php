@@ -1,5 +1,45 @@
 <?php
     include_once('steam.php');
+
+    /* How long a login lasts.
+       This used to be `time() * 30` -- a multiplication where an addition was
+       meant, which put the expiry in the year 3670:
+
+           php > echo date("Y-m-d", time() * 30);
+           3670-08-10
+
+       so the credential never aged out and there was no way to expire it. */
+    define('LOGIN_COOKIE_LIFETIME', 12 * 60 * 60);
+
+    /* One place that decides how the login cookies are attributed, so
+       login-process.php, logout.php and header.php cannot drift apart.
+
+       `secure` stays on unconditionally: the panel is meant to be served over
+       HTTPS and every existing setcookie() call already passed secure=true.
+
+       `samesite` was absent, which left the browser default of Lax. It is set
+       explicitly here so the intent is visible. */
+    function loginCookieOptions(int $expires): array {
+        return [
+            'expires'  => $expires,
+            'path'     => '/',
+            'domain'   => $_SERVER['SERVER_NAME'] ?? '',
+            'secure'   => true,
+            'httponly' => true,
+            'samesite' => 'Lax',
+        ];
+    }
+
+    function setLoginCookie(string $name, string $value): bool {
+        return setcookie($name, $value, loginCookieOptions(time() + LOGIN_COOKIE_LIFETIME));
+    }
+
+    function clearLoginCookies(): void {
+        foreach (['steamID', 'secret_key', 'aid'] as $name) {
+            setcookie($name, '', loginCookieOptions(time() - 3600));
+        }
+    }
+
     class Utility {
         public static function sanitizeInput($input) {
             $input = (string) ($input ?? '');
