@@ -21,12 +21,12 @@
             die();
         }
 
-        if (!isset($_COOKIE['steamID'])) {
+        if (!IsAdminLoggedIn()) {
             die();
         }
 
         $admin = new Admin();
-        $admin->UpdateAdminInfo($_COOKIE['steamID']);
+        $admin->UpdateAdminInfo();
 
         $id = (int) filter_input(INPUT_POST, 'oldid', FILTER_SANITIZE_NUMBER_INT);
         
@@ -110,7 +110,7 @@
             die();
         }
 
-        if (!isset($_COOKIE['steamID'])) {
+        if (!IsAdminLoggedIn()) {
             die();
         }
 
@@ -152,7 +152,7 @@
         }
 
         $admin = new Admin();
-        $admin->UpdateAdminInfo($_COOKIE['steamID']);
+        $admin->UpdateAdminInfo();
 
         if ($length === null && !$admin->DoesHaveFullAccess()) {
             echo "<p>$icon You do not have permission for Permanent bans!</p>";
@@ -204,13 +204,13 @@
             die();
         }
 
-        if (!isset($_COOKIE['steamID'])) {
+        if (!IsAdminLoggedIn()) {
             die();
         }
-        
+
         $admin = new Admin();
-        $admin->UpdateAdminInfo($_COOKIE['steamID']);
-        if (!IsAdminLoggedIn() || !$admin->DoesHaveFullAccess()) {
+        $admin->UpdateAdminInfo();
+        if (!$admin->DoesHaveFullAccess()) {
             die();
         }
 

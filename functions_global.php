@@ -34,10 +34,74 @@
         return setcookie($name, $value, loginCookieOptions(time() + LOGIN_COOKIE_LIFETIME));
     }
 
+    /* Clears the pre-session login cookies. Kept so a browser still holding a
+       set from before the server-side-session change is cleaned up on logout. */
     function clearLoginCookies(): void {
         foreach (['steamID', 'secret_key', 'aid'] as $name) {
             setcookie($name, '', loginCookieOptions(time() - 3600));
         }
+    }
+
+    /* Starts the session the login lives in. Must run before any output.
+
+       The login used to be three cookies whose only secret was SECRET_KEY --
+       one constant, identical for every admin, handed to every browser that
+       signed in. Nothing in that set proved the browser had ever completed the
+       Steam OpenID flow: `steamID` is a public SteamID (admin SteamIDs are
+       printed on every ban as "Banned by Admin"), `aid` is a small sequential
+       integer, and `secret_key` was the same string for everyone. Anyone who
+       saw that one string could re-issue the whole set for any other admin.
+
+       The session id is now a server-issued secret that is not derived from
+       anything the client knows. */
+    function startPanelSession(): void {
+        if (session_status() !== PHP_SESSION_NONE || headers_sent()) {
+            return;
+        }
+
+        /* Reject a session id the server never issued, so an attacker cannot
+           fix a victim's id in advance and inherit the session they create. */
+        ini_set('session.use_strict_mode', '1');
+        ini_set('session.use_only_cookies', '1');
+
+        session_set_cookie_params([
+            /* A browser-session cookie; the real deadline is enforced by the
+               server through $_SESSION['login_time']. */
+            'lifetime' => 0,
+            'path'     => '/',
+            'domain'   => $_SERVER['SERVER_NAME'] ?? '',
+            'secure'   => true,
+            'httponly' => true,
+            'samesite' => 'Lax',
+        ]);
+
+        session_name('kbans_session');
+        session_start();
+    }
+
+    startPanelSession();
+
+    /* Records a completed Steam OpenID login. */
+    function establishAdminSession(string $steamID, array $adminRow): void {
+        /* A fresh id for the authenticated session, so an id that existed
+           before the login cannot be replayed after it. */
+        session_regenerate_id(true);
+
+        $_SESSION['steamid']    = $steamID;
+        $_SESSION['aid']        = (int) $adminRow['aid'];
+        $_SESSION['gid']        = (int) $adminRow['gid'];
+        $_SESSION['user']       = $adminRow['user'];
+        $_SESSION['login_time'] = time();
+    }
+
+    function destroyAdminSession(): void {
+        $_SESSION = [];
+
+        if (ini_get('session.use_cookies')) {
+            setcookie(session_name(), '', loginCookieOptions(time() - 3600));
+        }
+
+        session_destroy();
     }
 
     class Utility {
@@ -54,85 +118,80 @@
         public $adminSteamID = "";
         public $adminUser = "";
 
-        public function IsLoginValid($steamID, $secret_key, $bInitialVerification) {
-         if (empty($steamID) || empty($secret_key) || $secret_key !== $GLOBALS['SECRET_KEY']) {
-            return false;
-        }
+        /* Admin rows resolved during this request, so repeated eligibility
+           checks for the same SteamID do not each re-hit SourceBans. */
+        private static $adminRowCache = [];
 
-        $sql = "SELECT aid FROM sb_admins WHERE authid = ?";
-        $stmt = $GLOBALS['SBPP']->prepare($sql);
-        $stmt->bind_param("s", $steamID);
-        $stmt->execute();
-        $queryResult = $stmt->get_result();
-        $stmt->close();
+        /* The SourceBans admin row for a SteamID, but only if that SteamID is
+           allowed to sign in; null otherwise.
 
-        // Fetch the result from the query
-        $row = $queryResult->fetch_assoc();
-        if ($row === null) {
-            return false;
-        }
-        $sbppaid = $row['aid'];
-
-        // Compare the cookie 'aid' with the result from the query
-        if (!$bInitialVerification && !isset($_COOKIE['aid'])) {
-            return false;
-        }
-
-        if (!$bInitialVerification && $sbppaid != $_COOKIE['aid']) {
-            return false;
-        }
-
-        $sql = "SELECT * FROM `sb_admins` WHERE `authid`=?";
-        $stmt = $GLOBALS['SBPP']->prepare($sql);
-        $stmt->bind_param("s", $steamID);
-        $stmt->execute();
-        $queryResult = $stmt->get_result();
-        $stmt->close();
-
-        if ($queryResult->num_rows <= 0) {
-            return false;
-        }
-
-        $acceptableGroups = array_merge(GID_STAFF, GID_ADMIN);
-        $resultsAAA = $queryResult->fetch_all(MYSQLI_ASSOC);
-        foreach ($resultsAAA as $result) {
-            $gid = $result['gid'];
-            if (!in_array($gid, $acceptableGroups) || $gid == -1) {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-        public function UpdateAdminInfo($steamID) {
-            if (!isset($_COOKIE['secret_key'])) {
-                return false;
+           Membership is re-read on every request -- never trusted from
+           whatever the browser sent -- so removing an admin from SourceBans or
+           moving them out of an allowed group takes effect immediately. */
+        public static function lookupEligibleAdmin($steamID): ?array {
+            $steamID = (string) ($steamID ?? '');
+            if ($steamID === '') {
+                return null;
             }
 
-            $secret_key = $_COOKIE['secret_key'];
-            if (!$this->IsLoginValid($steamID, $secret_key, false)) {
-                return false;
+            if (array_key_exists($steamID, self::$adminRowCache)) {
+                return self::$adminRowCache[$steamID];
             }
 
-            $sql = "SELECT `aid`, `gid`, `authid`, `user` FROM `sb_admins` WHERE `authid`=?";
-            $stmt = $GLOBALS['SBPP']->prepare($sql);
+            $stmt = $GLOBALS['SBPP']->prepare(
+                "SELECT `aid`, `gid`, `authid`, `user` FROM `sb_admins` WHERE `authid` = ?"
+            );
             $stmt->bind_param("s", $steamID);
             $stmt->execute();
-            $queryResult = $stmt->get_result();
+            $row = $stmt->get_result()->fetch_assoc();
+            $stmt->close();
 
-            if ($queryResult->num_rows <= 0) {
-                $stmt->close();
+            $acceptableGroups = array_merge(GID_STAFF, GID_ADMIN);
+            if ($row === null || $row['gid'] == -1 || !in_array($row['gid'], $acceptableGroups)) {
+                return self::$adminRowCache[$steamID] = null;
+            }
+
+            return self::$adminRowCache[$steamID] = $row;
+        }
+
+        /* The SteamID of the signed-in admin, or null. This is the whole
+           credential check now: a server-side session the client cannot forge,
+           plus a deadline the server owns. */
+        public static function sessionSteamID(): ?string {
+            $steamID = $_SESSION['steamid'] ?? null;
+            $since   = $_SESSION['login_time'] ?? null;
+
+            if (!is_string($steamID) || $steamID === '' || !is_int($since)) {
+                return null;
+            }
+
+            /* The session cookie alone lasts only as long as the browser stays
+               open, so the real deadline is enforced here. */
+            if ((time() - $since) > LOGIN_COOKIE_LIFETIME) {
+                return null;
+            }
+
+            return $steamID;
+        }
+
+        /* Populates this object from the signed-in admin. An explicit SteamID
+           is accepted for the login flow, before a session exists; every other
+           caller passes nothing and gets the session's admin. */
+        public function UpdateAdminInfo(?string $steamID = null) {
+            $steamID = $steamID ?? self::sessionSteamID();
+            if (!is_string($steamID) || $steamID === '') {
                 return false;
             }
 
-            $result = $queryResult->fetch_assoc();
-            $stmt->close();
+            $row = self::lookupEligibleAdmin($steamID);
+            if ($row === null) {
+                return false;
+            }
 
-            $this->adminID = $result['aid'];
-            $this->adminGroupID = $result['gid'];
-            $this->adminSteamID = $result['authid'];
-            $this->adminUser = $result['user'];
+            $this->adminID = $row['aid'];
+            $this->adminGroupID = $row['gid'];
+            $this->adminSteamID = $row['authid'];
+            $this->adminUser = $row['user'];
 
             return true;
         }
@@ -159,15 +218,7 @@
     }
 
         public function DoesHaveFullAccess() {
-            if (!isset($_COOKIE['steamID'])) {
-                return false;
-            }
-
-            if (in_array($this->adminGroupID, GID_STAFF)) {
-                return true;
-            }
-
-            return false;
+            return in_array($this->adminGroupID, GID_STAFF);
         }
 
     }
@@ -180,12 +231,12 @@
 
             $reason = Utility::sanitizeInput($reasonA);
 
-            if (!isset($_COOKIE['steamID'])) {
+            if (!IsAdminLoggedIn()) {
                 return false; // Should never happen but better be safe
             }
 
             $admin = new Admin();
-            if (!$admin->UpdateAdminInfo($_COOKIE['steamID'])) {
+            if (!$admin->UpdateAdminInfo()) {
                 return false;
             }
 
@@ -236,8 +287,7 @@
 
         public function RemoveKbanFromDB($id) {
             $admin = new Admin();
-            $adminSteamID = isset($_COOKIE['steamID']) ? $_COOKIE['steamID'] : "";
-            $admin->UpdateAdminInfo($adminSteamID);
+            $admin->UpdateAdminInfo();
             if (!IsAdminLoggedIn() || !$admin->DoesHaveFullAccess()) {
                 return false;
             }
@@ -262,8 +312,7 @@
             }
 
             $message = "KBan Deleted (was $length minutes. Issued for: $reason. Kban was $status)";
-			
-			$admin->UpdateAdminInfo($_COOKIE['steamID']);
+
 			$adminName = $admin->adminUser;
 			$adminSteamID = $admin->adminSteamID;
 			$time_stamp = time();
@@ -390,7 +439,7 @@
 
         public function addNewKban($playerNameA, $playerSteamID, $length, $reasonA) {
             $admin = new Admin();
-            $admin->UpdateAdminInfo($_COOKIE['steamID']);
+            $admin->UpdateAdminInfo();
             $adminName = $admin->adminUser;
             $adminSteamID = $admin->adminSteamID;
 
@@ -451,7 +500,7 @@
 
         public function EditKban($id, $playerNameA, $playerSteamID, $length, $reasonA) {
             $admin = new Admin();
-            $admin->UpdateAdminInfo($_COOKIE['steamID']);
+            $admin->UpdateAdminInfo();
             $adminName = $admin->adminUser;
             $adminSteamID = $admin->adminSteamID;
 
@@ -549,20 +598,10 @@
 
     }
 
-    function IsAdminLoggedIn() {
-        if(!isset($_COOKIE['steamID']) || !isset($_COOKIE['secret_key'])) {
-            return false;
-        }
+    function IsAdminLoggedIn(): bool {
+        $steamID = Admin::sessionSteamID();
 
-        $steamID = $_COOKIE['steamID'];
-        $secret_key = $_COOKIE['secret_key'];
-
-        $admin = new Admin();
-        if ($admin->IsLoginValid($steamID, $secret_key, false)) {
-            return true;
-        }
-
-        return false;
+        return $steamID !== null && Admin::lookupEligibleAdmin($steamID) !== null;
     }
 
     function EnsureCsrfToken() {
@@ -670,7 +709,7 @@
         }
 
         if (IsAdminLoggedIn()) {
-            $admin->UpdateAdminInfo($_COOKIE['steamID']);
+            $admin->UpdateAdminInfo();
 
             if (($time_stamp_end < 1 && $isRemoved == false && $isExpired == false) || ($time_stamp_end >= 1 && time() < $time_stamp_end && $isRemoved == false && $isExpired == false)) {
             
@@ -880,7 +919,7 @@
         
         echo "</optgroup>";
         $admin = new Admin();
-        $admin->UpdateAdminInfo($GLOBALS['steamID']);
+        $admin->UpdateAdminInfo();
         if ($addTag == false || $admin->DoesHaveFullAccess()) {
             echo "<optgroup label='Others'>";
             echo "<option value='0'>Permanent</option>";
