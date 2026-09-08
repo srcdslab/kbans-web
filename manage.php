@@ -3,13 +3,7 @@
 
     $admin = new Admin();
     if(!IsAdminLoggedIn()) {
-        echo "<div class='container'>
-        <div class='error-box'>
-        <p><i class='fa-solid fa-triangle-exclamation'></i> You do not have access to this page.</p>
-        </div>
-        </div>
-        </div>";
-        die();
+        renderAccessDenied();
     }
 
     $reban = false;
@@ -22,8 +16,7 @@
         $kban = new Kban();
         $info = $kban->getKbanInfoFromID(intval($oldid));
         if ($info === null) {
-            echo "<center><h2 style='color: cyan;'>Kban not found!</h2></center>";
-            die();
+            renderAccessDenied("Kban not found.");
         }
     }
 
@@ -33,23 +26,20 @@
         $kban = new Kban();
         $info = $kban->getKbanInfoFromID(intval($oldid));
         if ($info === null) {
-            echo "<center><h2 style='color: cyan;'>Kban not found!</h2></center>";
-            die();
+            renderAccessDenied("Kban not found.");
         }
 
         /* functions_url.php enforces this again on submit; check it here too so
            an admin cannot open, and fill in, the edit form for a kban they are
            not allowed to touch. */
-        $admin->UpdateAdminInfo($_COOKIE['steamID']);
+        $admin->UpdateAdminInfo();
         if (!$admin->DoesHaveFullAccess() && $info['admin_steamid'] != $admin->adminSteamID) {
-            echo "<center><h2 style='color: cyan;'>You can only edit kbans you issued yourself.</h2></center>";
-            die();
+            renderAccessDenied("You can only edit kbans you issued yourself.");
         }
 
         $time_stamp_end = $info['time_stamp_end'];
         if($time_stamp_end >= 1 && time() > $time_stamp_end) {
-            echo "<center><h2 style='color: cyan;'>Cannot edit an old kban!</h2></center>";
-            die();
+            renderAccessDenied("Cannot edit an old kban!");
         }
     }
 
@@ -61,9 +51,6 @@
 
 ?>
 
-<!DOCTYPE html>
-
-<html>
     <?php
     $text = ($edit == true) ? "Edit Kban" : "Add Kban";
     $formHeader = ($edit == true) ? "<i class='fa-regular fa-pen-to-square'></i>" : "<i class='fas fa-user-times'></i>";
@@ -168,9 +155,6 @@
             </div>
         </div>
     </div>
-    <?php include('footer.php'); ?>
-</div>
-</body>
     <script>
             $(function() {
                 function verifyAndConvertSteamID(steamID, callback) {
@@ -252,3 +236,4 @@
             });
         });
     </script>
+<?php include('footer.php'); ?>

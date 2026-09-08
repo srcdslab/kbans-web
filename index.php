@@ -1,10 +1,12 @@
 <?php
-    include('header.php');
-
+    /* Redirect before any output: this used to render the whole header and then
+       `echo` a <script> redirect and die() mid-document. */
     if(!isset($_GET['all']) && !isset($_GET['active']) && !isset($_GET['expired'])) {
-        echo "<script>window.location.replace('index.php?all');</script>";
-        die();
+        header('Location: index.php?all');
+        exit();
     }
+
+    include('header.php');
 
     $currentPage = currentPageFromRequest();
     $resultsPerPage = 20;
@@ -110,8 +112,6 @@
 
 ?>
 
-<!DOCTYPE html>
-<html lang="en">
     <?php
         $query = $GLOBALS['DB']->query($sql . " ORDER BY time_stamp_start DESC LIMIT $resultsStart, $resultsPerPage");
         $results1 = $query->fetch_all(MYSQLI_ASSOC);
@@ -294,10 +294,7 @@
                 </div>
             </div>
         </div>
-        <?php include('footer.php'); ?>
-    </div>
-</body>
-<script>
+    <script>
     $(function() {
         var allRows = [
             ".row-expired",
@@ -319,3 +316,4 @@
         });
     });
 </script>
+<?php include('footer.php'); ?>
