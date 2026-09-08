@@ -12,7 +12,7 @@
     }
     
     $admin = new Admin();
-    $admin->UpdateAdminInfo($_COOKIE['steamID']);
+    $admin->UpdateAdminInfo();
     if(!$admin->DoesHaveFullAccess()) {
         echo "<div class='container'>
         <div class='error-box'>
