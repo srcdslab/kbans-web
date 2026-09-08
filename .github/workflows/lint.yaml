@@ -1,0 +1,40 @@
+name: Lint
+
+on:
+  push:
+    branches:
+      - main
+      - master
+    tags:
+      - '*'
+  # No branch filter: a pull request has to be linted whatever it targets.
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  syntax:
+    name: Syntax (PHP ${{ matrix.php-version }})
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        php-version: ["8.3", "8.4", "8.5"]
+    steps:
+      - name: Code Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-version }}
+          extensions: bcmath, mbstring, mysqli
+          coverage: none
+
+      # Blocking: a parse error must never reach the default branch.
+      # `git ls-files` keeps this to tracked sources only.
+      - name: PHP syntax check
+        run: |
+          set -euo pipefail
+          git ls-files -z '*.php' | xargs -0 -r -n1 -P4 php -l
