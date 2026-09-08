@@ -23,11 +23,7 @@
         die();
     }
 
-    if(isset($_GET['page'])) {
-        $currentPage = max(1, (int) $_GET['page']);
-    } else {
-        $currentPage = 1;
-    }
+    $currentPage = currentPageFromRequest();
 
     $isWeb = false;
     $isSrv = false;
@@ -39,14 +35,13 @@
         $isSrv = true;
     }
 
-    
+
     $resultsPerPage = 20;
-    $resultsStart = (($currentPage - 1) * $resultsPerPage);
 
     $sql = "SELECT * FROM ";
     $sql .= ($isWeb) ? "`KbRestrict_weblogs`" : "`KbRestrict_srvlogs`";
 
-    if(isset($_GET['s']) && isset($_GET['m'])) {
+    if(isset($_GET['s']) && is_string($_GET['s']) && isset($_GET['m'])) {
         $input = trim($_GET['s']);
         $method = formatMethod(intval($_GET['m']));
 
@@ -62,18 +57,23 @@
             }
         }
 
-        $input = $GLOBALS['DB']->real_escape_string($input);
+        $input = $GLOBALS['DB']->real_escape_string(escapeLikeOperand($input));
         $sql .= " WHERE `$method` LIKE '%$input%'";
     }
 
     $sql_query = $GLOBALS['DB']->query($sql);
     $resultsCount = $sql_query->num_rows;
-    $totalPages = ceil(($resultsCount / $resultsPerPage));
+    $totalPages = (int) ceil($resultsCount / $resultsPerPage);
 
     $sql_query->free();
     if($totalPages != 0 && $currentPage > $totalPages) {
         $currentPage = $totalPages;
     }
+
+    /* Computed after the page-number clamp, so a `?page=` past the end lands
+       on the last page instead of an empty one and the LIMIT offset can never
+       overflow into a float. */
+    $resultsStart = resultsOffset($currentPage, $totalPages, $resultsPerPage);
 
     $num = ($isWeb) ? 4 : 5;
     $pageType = ($isWeb) ? "web" : "srv";

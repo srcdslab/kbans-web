@@ -6,14 +6,8 @@
         die();
     }
 
-    if(isset($_GET['page'])) {
-        $currentPage = max(1, (int) $_GET['page']);
-    } else {
-        $currentPage = 1;
-    }
-
+    $currentPage = currentPageFromRequest();
     $resultsPerPage = 20;
-    $resultsStart = (($currentPage - 1) * $resultsPerPage);
 
     $sql = "SELECT * FROM `KbRestrict_CurrentBans`";
     $pageType = "all";
@@ -28,7 +22,7 @@
     }
 
     if(isset($_GET['m']) && (isset($_GET['s']) || isset($_GET['length']))) {
-        $input = isset($_GET['s']) ? trim($_GET['s']) : "";
+        $input = (isset($_GET['s']) && is_string($_GET['s'])) ? trim($_GET['s']) : "";
         $queryComplete = "";
         $method = formatMethod(intval($_GET['m']));
 
@@ -69,7 +63,7 @@
             }
 
         if($queryComplete == "") {
-            $input = $GLOBALS['DB']->real_escape_string($input);
+            $input = $GLOBALS['DB']->real_escape_string(escapeLikeOperand($input));
             $queryComplete = "LIKE '%$input%'";
         }
 
@@ -84,13 +78,19 @@
     
     $sql_query = $GLOBALS['DB']->query($sql);
     $resultsCount = $sql_query->num_rows;
-    $totalPages = ceil(($resultsCount / $resultsPerPage));
+    $totalPages = (int) ceil($resultsCount / $resultsPerPage);
 
     $sql_query->free();
     if($totalPages != 0 && $currentPage > $totalPages) {
         $currentPage = $totalPages;
     }
-    
+
+    /* After the page number is clamped to the real page count, never before:
+       a `?page=` past the end would otherwise point the offset past the last
+       row (empty list, selector still showing the last page) and could make
+       `$resultsStart` overflow into a float, breaking the LIMIT clause. */
+    $resultsStart = resultsOffset($currentPage, $totalPages, $resultsPerPage);
+
     $pageActiveNum = 2;
     if($pageType == "all") {
         $pageActiveNum = 0;
