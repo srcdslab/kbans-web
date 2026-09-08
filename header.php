@@ -17,7 +17,8 @@
 
     $csrfToken = EnsureCsrfToken();
 ?>
-
+<!DOCTYPE html>
+<html lang="en">
 <head>
     <title>KnockBack Bans</title>
     <link rel="icon" href="./images/favicon.ico" />

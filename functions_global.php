@@ -658,6 +658,21 @@
         return $steamID !== null && Admin::lookupEligibleAdmin($steamID) !== null;
     }
 
+    /* Renders a complete, well-formed page for a request that cannot proceed:
+       the error box, then footer.php, which closes the `.body_content`, <body>
+       and <html> that header.php opened. Every early `echo ...; die();` that
+       used to leave the document hanging mid-tag calls this instead. */
+    function renderAccessDenied($message = "You do not have access to this page.") {
+        $message = htmlspecialchars((string) $message, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+        echo "<div class='container'>
+        <div class='error-box'>
+        <p><i class='fa-solid fa-triangle-exclamation'></i> $message</p>
+        </div>
+        </div>";
+        include(ROOT . 'footer.php');
+        die();
+    }
+
     function EnsureCsrfToken() {
         if (session_status() !== PHP_SESSION_ACTIVE) {
             session_start();
