@@ -196,25 +196,29 @@
             return true;
         }
 
+        /* One SourceBans lookup per distinct admin per request. The listing
+           page resolves the same handful of admin names once per row -- and
+           again inside GetRowInfo -- and the logs page once per row; on a full
+           page that was ~40+ identical queries. */
+        private static $adminNameCache = [];
+
         public function GetAdminNameFromSteamID($steamID) {
             $steamID = (string) ($steamID ?? '');
             if (!str_contains($steamID, "STEAM")) {
                 return "CONSOLE";
             }
 
-            $sql = "SELECT * FROM `sb_admins` WHERE `authid`=?";
-            $stmt = $GLOBALS['SBPP']->prepare($sql);
-            $stmt->bind_param("s", $steamID);
-            $stmt->execute();
-            $queryResult = $stmt->get_result();
-            $stmt->close();
-
-            $results = $queryResult->fetch_all(MYSQLI_ASSOC);
-            foreach ($results as $result) {
-                return $result['user'];
+            if (array_key_exists($steamID, self::$adminNameCache)) {
+                return self::$adminNameCache[$steamID];
             }
 
-            return "<i>Admin Deleted</i>";
+            $stmt = $GLOBALS['SBPP']->prepare("SELECT `user` FROM `sb_admins` WHERE `authid` = ?");
+            $stmt->bind_param("s", $steamID);
+            $stmt->execute();
+            $row = $stmt->get_result()->fetch_assoc();
+            $stmt->close();
+
+            return self::$adminNameCache[$steamID] = ($row['user'] ?? "<i>Admin Deleted</i>");
     }
 
         public function DoesHaveFullAccess() {
@@ -424,32 +428,44 @@
             return $result ?: null;
         }
 
+        /* Per-request count cache. The listing loop asks for both totals of the
+           same SteamID on every row it issued, and a repeat offender shows up
+           on several rows. Only ever read while rendering a (read-only) list;
+           the write paths do not consult it. */
+        private static $countCache = [];
+
         public function GetKbansNumber($steamID, $IP = "") {
             $search = (empty($steamID)) ? $IP : $steamID;
             $searchMethod = (empty($steamID)) ? "client_ip" : "client_steamid";
-            
-            $stmt = $GLOBALS['DB']->prepare("SELECT COUNT(*) AS total FROM `KbRestrict_CurrentBans` WHERE `$searchMethod` = ?");
-            $stmt->bind_param("s", $search);
-            $stmt->execute();
-            $queryA = $stmt->get_result();
-            $row = $queryA->fetch_assoc();
-            $stmt->close();
-            $rows = intval($row['total'] ?? 0);
-            return $rows;
+            $key = $searchMethod . '|' . $search;
+
+            if (!isset(self::$countCache[$key]['total'])) {
+                $stmt = $GLOBALS['DB']->prepare("SELECT COUNT(*) AS total FROM `KbRestrict_CurrentBans` WHERE `$searchMethod` = ?");
+                $stmt->bind_param("s", $search);
+                $stmt->execute();
+                $row = $stmt->get_result()->fetch_assoc();
+                $stmt->close();
+                self::$countCache[$key]['total'] = intval($row['total'] ?? 0);
+            }
+
+            return self::$countCache[$key]['total'];
         }
-        
+
         public function GetRealKbansNumber($steamID, $IP = "") {
             $search = (empty($steamID)) ? $IP : $steamID;
             $searchMethod = (empty($steamID)) ? "client_ip" : "client_steamid";
+            $key = $searchMethod . '|' . $search;
 
-            $stmt = $GLOBALS['DB']->prepare("SELECT COUNT(*) AS total FROM `KbRestrict_CurrentBans` WHERE `$searchMethod` = ? AND `is_removed` = 0");
-            $stmt->bind_param("s", $search);
-            $stmt->execute();
-            $queryA = $stmt->get_result();
-            $row = $queryA->fetch_assoc();
-            $stmt->close();
-            $rows = intval($row['total'] ?? 0);
-            return $rows;
+            if (!isset(self::$countCache[$key]['real'])) {
+                $stmt = $GLOBALS['DB']->prepare("SELECT COUNT(*) AS total FROM `KbRestrict_CurrentBans` WHERE `$searchMethod` = ? AND `is_removed` = 0");
+                $stmt->bind_param("s", $search);
+                $stmt->execute();
+                $row = $stmt->get_result()->fetch_assoc();
+                $stmt->close();
+                self::$countCache[$key]['real'] = intval($row['total'] ?? 0);
+            }
+
+            return self::$countCache[$key]['real'];
         }
 
         public function addNewKban($playerNameA, $playerSteamID, $length, $reasonA) {
