@@ -161,13 +161,21 @@
 
             $time_removed = time();
 
-            $sql = "UPDATE `KbRestrict_CurrentBans` SET `is_expired`=1, `is_removed`=1, 
-                    `admin_name_removed`=?, `admin_steamid_removed`=?, `reason_removed`=?, 
-                    `time_stamp_removed`=? WHERE `id`=?";
+            $sql = "UPDATE `KbRestrict_CurrentBans` SET `is_expired`=1, `is_removed`=1,
+                    `admin_name_removed`=?, `admin_steamid_removed`=?, `reason_removed`=?,
+                    `time_stamp_removed`=? WHERE `id`=? AND `is_removed`=0";
             $stmt = $GLOBALS['DB']->prepare($sql);
             $stmt->bind_param("ssssi", $adminName, $adminSteamID, $reason, $time_removed, $id);
             $stmt->execute();
+            $closed = ($stmt->affected_rows > 0);
             $stmt->close();
+
+            /* The `is_removed`=0 guard is what makes a second unban a no-op.
+               Without this check the no-op was still written to the weblog and
+               still reported to the caller as a success. */
+            if (!$closed) {
+                return false;
+            }
 
             $results = $this->getKbanInfoFromID($id);
             if ($results === null) {
@@ -232,7 +240,14 @@
             $stmt = $GLOBALS['DB']->prepare("DELETE FROM `KbRestrict_CurrentBans` WHERE `id` = ?");
             $stmt->bind_param('i', $id);
             $stmt->execute();
+            $deleted = ($stmt->affected_rows > 0);
             $stmt->close();
+
+            /* Someone else deleted this kban between the lookup above and here:
+               nothing was removed, so there is nothing to log or report. */
+            if (!$deleted) {
+                return false;
+            }
 
             $stmt = $GLOBALS['DB']->prepare("INSERT INTO `KbRestrict_weblogs` (`client_name`, `client_steamid`, `admin_name`, `admin_steamid`, `message`, `time_stamp`) VALUES (?, ?, ?, ?, ?, ?)");
             $stmt->bind_param('sssssi', $playerName, $playerSteamID, $adminName, $adminSteamID, $message, $time_stamp);

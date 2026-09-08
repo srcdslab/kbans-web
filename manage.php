@@ -37,6 +37,15 @@
             die();
         }
 
+        /* functions_url.php enforces this again on submit; check it here too so
+           an admin cannot open, and fill in, the edit form for a kban they are
+           not allowed to touch. */
+        $admin->UpdateAdminInfo($_COOKIE['steamID']);
+        if (!$admin->DoesHaveFullAccess() && $info['admin_steamid'] != $admin->adminSteamID) {
+            echo "<center><h2 style='color: cyan;'>You can only edit kbans you issued yourself.</h2></center>";
+            die();
+        }
+
         $time_stamp_end = $info['time_stamp_end'];
         if($time_stamp_end >= 1 && time() > $time_stamp_end) {
             echo "<center><h2 style='color: cyan;'>Cannot edit an old kban!</h2></center>";

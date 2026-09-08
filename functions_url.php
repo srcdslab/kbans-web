@@ -95,6 +95,16 @@
             die();
         }
 
+        /* The Add form only offers the Permanent option to full-access admins
+           (see GetKbanLengths), but the endpoint never enforced it -- `length=0`
+           sent straight here from anyone with a login created a permanent kban. */
+        $admin = new Admin();
+        $admin->UpdateAdminInfo($_COOKIE['steamID']);
+        if ($length === 0 && !$admin->DoesHaveFullAccess()) {
+            echo "<p>$icon You do not have permission for Permanent bans!</p>";
+            die();
+        }
+
         $kban = new Kban();
         if ($kban->IsSteamIDAlreadyBanned($playerSteamID)) {
             echo "<p>$icon $playerSteamID is already kbanned!</p>";
@@ -154,7 +164,13 @@
         $admin = new Admin();
         $admin->UpdateAdminInfo($_COOKIE['steamID']);
 
-        if ($length === null && !$admin->DoesHaveFullAccess()) {
+        /* filter_input(..., FILTER_SANITIZE_NUMBER_INT) returns a string ("0"
+           for a permanent ban), never null, whenever `length` is present -- so
+           the old `$length === null` test only fired when the parameter was
+           absent, and `length=0` sent straight to the endpoint slipped past it. */
+        $length = ($length === null) ? 0 : (int) $length;
+
+        if ($length === 0 && !$admin->DoesHaveFullAccess()) {
             echo "<p>$icon You do not have permission for Permanent bans!</p>";
             die();
         }
@@ -163,11 +179,6 @@
             $reason = "NO REASON";
         }
 
-        if ($length === null) {
-            $length = 0;
-        }
-        $length = (int) $length;
-        
         if ($length < 0) {
             $length = 30;
         }
