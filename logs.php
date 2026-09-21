@@ -35,8 +35,8 @@
 
         if($method == "client_steamid" || $method == "admin_steamid") {
             $steamInput = str_replace(" ", "", $input);
-            $steam = new Steam();
-            $result = $steam->verifyAndConvertSteamID($steamInput);
+            
+            $result = Steam::verifyAndConvertSteamID($steamInput);
 
             if ($result['success'] && !empty($result['steamID2'])) {
                 $input = $result['steamID2'];

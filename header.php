@@ -10,8 +10,8 @@
         $GLOBALS['steamID'] = $admin->adminSteamID;
         $adminName = $admin->adminUser;
 
-        $steam = new Steam();
-        $steamID64 = $steam->SteamID_To_SteamID64($GLOBALS['steamID']);
+        
+        $steamID64 = Steam::SteamID_To_SteamID64($GLOBALS['steamID']);
         $adminURL = "https://steamcommunity.com/profiles/$steamID64";
     }
 
