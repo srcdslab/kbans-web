@@ -141,7 +141,7 @@ class Steam
 		return $SteamProfileAttribute;
 	}
 	
-	function verifyAndConvertSteamID($steamid) {
+	public static function verifyAndConvertSteamID($steamid) {
 		try {
 			$steamID2 = Steam::convertSteamID($steamid);
 			return ['success' => true, 'steamID2' => $steamID2];
