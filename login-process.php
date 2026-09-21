@@ -78,8 +78,8 @@
     $userData = $response['response']['players'][0];
 
     $steamID64 = $userData['steamid'];
-    $steam = new Steam();
-    $steamID32 = $steam->SteamID64_To_SteamID($steamID64);
+    
+    $steamID32 = Steam::SteamID64_To_SteamID($steamID64);
 
     /* Steam has confirmed the identity above. Record it in a server-side
        session; the only thing handed to the browser is the session id. */
